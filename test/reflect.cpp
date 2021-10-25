@@ -10,7 +10,7 @@ TEST_CASE("image attribute check for vec3", "[core][unit]") {
     const auto fields = tsmp::reflect<foo_t>::fields();
     const auto first = std::get<0>(fields);
     using value_type = typename decltype(first)::value_type;
-    REQUIRE(std::is_same_v<value_type, int>);
+    static_assert(std::is_same_v<value_type, int>, "value type is not correct");
     REQUIRE(foo.*(first.ptr) == 42);
     REQUIRE(first.name == "i");
 }

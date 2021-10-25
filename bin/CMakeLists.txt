@@ -4,7 +4,7 @@ find_library(libclang "libclang.so" PATHS "/usr/lib/llvm-12/lib")
 find_library(libllvm "libLLVM.so" PATHS "/usr/lib/llvm-12/lib")
 target_include_directories(llvm_config INTERFACE /usr/lib/llvm-12/include)
 target_link_libraries(llvm_config INTERFACE ${libclangcpp} ${libclang} ${libllvm})
-target_compile_features(llvm_config INTERFACE cxx_std_14)
+target_compile_features(llvm_config INTERFACE cxx_std_17)
 
 set(introspect_src
     introspect.cpp
