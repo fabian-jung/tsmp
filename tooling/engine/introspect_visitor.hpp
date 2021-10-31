@@ -1,3 +1,5 @@
+#pragma once
+
 #include <clang/AST/RecursiveASTVisitor.h>
 #include "data/aggregator.hpp"
 

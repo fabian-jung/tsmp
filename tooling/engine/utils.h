@@ -1,15 +1,14 @@
 #pragma once
 
-#include <fstream>
-#include <vector>
-#include <string>
-
 #include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/Twine.h>
 
 #include <clang/Tooling/Tooling.h>
 #include <clang/Frontend/FrontendActions.h>
-#include "clang/Tooling/CompilationDatabase.h"
+#include <clang/Tooling/CompilationDatabase.h>
+
+#include <vector>
+#include <string>
 
 namespace utils
 {

@@ -1,8 +1,3 @@
-find_package(Catch2 REQUIRED)
-include(CTest NO_POLICY_SCOPE)
-include(Catch NO_POLICY_SCOPE)
-include(ParseAndAddCatchTests)
-
 add_library(catch_main STATIC catch_main.cpp)
 target_link_libraries(catch_main PUBLIC Catch2::Catch2)
 
@@ -17,3 +12,5 @@ foreach(file ${TESTS})
     enable_reflection(${name}_test)
     catch_discover_tests(${name}_test)
 endforeach()
+
+add_subdirectory(tooling)
