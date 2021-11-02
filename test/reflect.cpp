@@ -25,21 +25,24 @@ TEST_CASE("shared attributes reflection test", "[core][unit]") {
         float f { 3.1415 };
     } bar;
 
-    // const auto foo_i = std::get<0>(tsmp::reflect<foo_t>::fields());
-    // using foo_i_t = typename decltype(foo_i)::value_type;
-    // static_assert(std::is_same_v<foo_i_t, int>, "value type is not correct");
-    // REQUIRE(foo.*(foo_i.ptr) == 42);
-    // REQUIRE(foo_i.name == "i");
+    constexpr auto foo_fields = tsmp::reflect<foo_t>::fields();
+    constexpr auto bar_fields = tsmp::reflect<bar_t>::fields();
 
-    // const auto bar_i = std::get<0>(tsmp::reflect<bar_t>::fields());
-    // using bar_i_t = typename decltype(bar_i)::value_type;
-    // static_assert(std::is_same_v<bar_i_t, int>, "value type is not correct");
-    // REQUIRE(foo.*(bar_i.ptr) == 42);
-    // REQUIRE(bar_i.name == "i");
+    const auto foo_i = std::get<0>(foo_fields);
+    using foo_i_t = typename decltype(foo_i)::value_type;
+    static_assert(std::is_same_v<foo_i_t, int>, "value type is not correct");
+    REQUIRE(foo.*(foo_i.ptr) == 42);
+    REQUIRE(foo_i.name == "i");
 
-    // const auto bar_f = std::get<1>(tsmp::reflect<bar_t>::fields());
-    // using bar_f_t = typename decltype(bar_f)::value_type;
-    // static_assert(std::is_same_v<bar_f_t, float>, "value type is not correct");
-    // REQUIRE(foo.*(bar_f.ptr) == 42);
-    // REQUIRE(bar_f.name == "i");
+    const auto bar_i = std::get<0>(bar_fields);
+    using bar_i_t = typename decltype(bar_i)::value_type;
+    static_assert(std::is_same_v<bar_i_t, int>, "value type is not correct");
+    REQUIRE(bar.*(bar_i.ptr) == 42);
+    REQUIRE(bar_i.name == "i");
+
+    const auto bar_f = std::get<1>(bar_fields);
+    using bar_f_t = typename decltype(bar_f)::value_type;
+    static_assert(std::is_same_v<bar_f_t, float>, "value type is not correct");
+    REQUIRE(bar.*(bar_f.ptr) == 3.1415f);
+    REQUIRE(bar_f.name == "f");
 }

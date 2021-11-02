@@ -24,7 +24,7 @@ jobs:
         sudo apt-get update -y
         sudo apt-get install -y software-properties-common 
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-        sudo apt-get install -y g++-11 clang-12 libclang-cpp12-dev libclang-12-dev
+        sudo apt-get install -y g++-11 clang-12 libclang-cpp12-dev libclang-12-dev libfmt-dev
         git clone https://github.com/catchorg/Catch2.git
         cd Catch2
         git checkout v2.x
