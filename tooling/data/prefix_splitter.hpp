@@ -51,9 +51,10 @@ public:
             for(const auto& f : record.fields) {
                 fields += fmt::format("field_description_t{{ {0}, \"{1}\", &T::{1} }},\n", i++, f.name);
             }
-            fields.resize(fields.size()-2);
-
-            result += fmt::format(
+            if(!record.fields.empty()) {
+                fields.resize(fields.size()-2);
+                result += 
+                    fmt::format(
 R"(template <class T>
 requires has_{}<T>
 struct reflect<T> {{
@@ -69,10 +70,28 @@ struct reflect<T> {{
 }};
 
 )",
-                fmt::join(record.fields, "<T> && has_"),
-                record.name,
-                fields
-            );
+                        fmt::join(record.fields, "<T> && has_"),
+                        record.name,
+                        fields
+                    );
+            } else {
+                result += 
+                    fmt::format(
+R"(template <class T>
+struct reflect {{
+    static constexpr bool reflectable = true;
+    constexpr static auto name() {{
+        return "{}";
+    }}
+    constexpr static auto fields() {{
+        return std::make_tuple();
+    }}
+}};
+
+)",
+                        record.name
+                    );
+            }
         }
         return result;
     }

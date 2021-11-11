@@ -46,3 +46,10 @@ TEST_CASE("shared attributes reflection test", "[core][unit]") {
     REQUIRE(bar.*(bar_f.ptr) == 3.1415f);
     REQUIRE(bar_f.name == "f");
 }
+
+TEST_CASE("empty class reflection test", "[core][unit]") {
+    struct foo_t {
+    } foo;
+    const auto fields = tsmp::reflect<foo_t>::fields();
+    static_assert(std::tuple_size_v<decltype(fields)> == 0, "Empty types has no fields.");
+}

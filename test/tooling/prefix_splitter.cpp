@@ -20,6 +20,21 @@ TEST_CASE("prefix_splitter_t simple construction", "[core][unit]") {
     REQUIRE(splitter.records()[1].name == "bar_t");
 }
 
+TEST_CASE("prefix_splitter_t zero fields construction", "[core][unit]") {
+    const std::vector<record_decl_t> records {
+        record_decl_t{ "foo_t", { } },
+        record_decl_t{ "bar_t", { } }
+    };
+    data::prefix_splitter_t splitter{ records };
+
+    REQUIRE(splitter.fields().size() == 0);
+    
+    REQUIRE(splitter.records().size() == 1);
+    REQUIRE(splitter.records()[0].name == "<unknown>");
+
+    std::cout << splitter.render() << std::endl;
+}
+
 TEST_CASE("prefix_splitter_t shared  field construction", "[core][unit]") {
     const std::vector<record_decl_t> records {
         record_decl_t{ "foo_t", { field_decl_t{"i"}, field_decl_t{"j"} } },

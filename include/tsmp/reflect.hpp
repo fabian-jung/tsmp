@@ -15,6 +15,10 @@ struct field_description_t {
 template <class T, class V>
 field_description_t(std::size_t, std::string_view,  V T::*) -> field_description_t<T, V>;
 
+#ifdef TSMP_REFLECTION_ENABLED
+template <class T>
+struct reflect;
+#else
 template <class T>
 struct reflect {
     constexpr static bool reflectable = false;
@@ -22,6 +26,7 @@ struct reflect {
         return std::make_tuple();
     }
 };
+#endif
 
 }
 
