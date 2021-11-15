@@ -15,6 +15,13 @@ TEST_CASE("basic reflection test", "[core][unit]") {
     REQUIRE(first.name == "i");
 }
 
+TEST_CASE("empty class reflection test", "[core][unit]") {
+    struct foo_empty_t {
+    } foo;
+    const auto fields = tsmp::reflect<foo_empty_t>::fields();
+    static_assert(std::tuple_size_v<decltype(fields)> == 0, "Empty types has no fields.");
+}
+
 TEST_CASE("shared attributes reflection test", "[core][unit]") {
     struct foo_t {
         int i { 42 };
@@ -47,9 +54,25 @@ TEST_CASE("shared attributes reflection test", "[core][unit]") {
     REQUIRE(bar_f.name == "f");
 }
 
-TEST_CASE("empty class reflection test", "[core][unit]") {
+TEST_CASE("member function reflection test", "[core][unit]") {
     struct foo_t {
-    } foo;
-    const auto fields = tsmp::reflect<foo_t>::fields();
-    static_assert(std::tuple_size_v<decltype(fields)> == 0, "Empty types has no fields.");
+        void print() {};
+        int add(int a, int b) { 
+            return a + b;
+        }
+    };
+
+    foo_t foo;
+    constexpr auto fields = tsmp::reflect<foo_t>::fields();
+    static_assert(std::tuple_size_v<decltype(fields)> == 0, "foo_t should not have any fields");
+
+    constexpr auto functions = tsmp::reflect<foo_t>::functions();
+    static_assert(std::tuple_size_v<decltype(functions)> >= 2, "foo_t should have functions");
+    
+    const auto print = std::get<0>(functions);
+    REQUIRE(print.name == "print");
+
+    const auto add = std::get<1>(functions);
+    REQUIRE(add.name == "add");
+    REQUIRE((foo.*(add.ptr))(2, 2) == 4);
 }

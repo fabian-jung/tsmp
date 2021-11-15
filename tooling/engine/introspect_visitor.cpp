@@ -34,6 +34,17 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
             record_decl.fields.emplace_back(data::field_decl_t{std::move(name)});
         }
     }
+    for(const auto& method : decl->methods()) {
+        auto name = method->getNameAsString();
+        // llvm::outs() << "found method with name = " << name << "\n";
+        if(
+            name.size() > 0 &&
+            name != record_decl.name && // Addresses of constructors can not be taken, therefore we can not reflect them
+             name.at(0) != '~' // Addresses of constructors can not be taken, therefore we can not reflect them
+        ) {
+            record_decl.functions.emplace_back(data::function_decl_t{std::move(name)});
+        }
+    }
     aggregator.add_record_decl(std::move(record_decl));
 }
 

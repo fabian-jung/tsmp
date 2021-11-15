@@ -18,6 +18,7 @@ field_description_t(std::size_t, std::string_view,  V T::*) -> field_description
 #ifdef TSMP_REFLECTION_ENABLED
 template <class T>
 struct reflect;
+
 #else
 template <class T>
 struct reflect {
@@ -25,11 +26,14 @@ struct reflect {
     constexpr static auto fields() {
         return std::make_tuple();
     }
+    constexpr static auto functions() {
+        return std::make_tuple();
+    }
 };
 #endif
 
 }
 
-#ifndef INTROSPECT_PASS
+#if !defined(INTROSPECT_PASS) && defined(TSMP_REFLECTION_ENABLED)
 #include "reflection.hpp"
 #endif
