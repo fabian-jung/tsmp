@@ -49,6 +49,7 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
 }
 
 bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpecializationDecl *Declaration) {
+    // llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
     if(Declaration->getDeclName().getAsString() != "reflect") {
         return true;
     }

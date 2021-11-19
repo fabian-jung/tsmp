@@ -30,12 +30,18 @@ function(enable_reflection target)
     get_target_property(TARGET_SOURCES ${target} SOURCES)
     file(RELATIVE_PATH RELATIVE_SOURCES ${CMAKE_BINARY_DIR} ${TARGET_SOURCES})
     message(STATUS "Sources for ${target}: ${TARGET_SOURCES} ${RELATIVE_SOURCES}")
+    add_custom_target(
+        ${target}_header_dir
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/tsmp/${target}
+    )
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/tsmp/${target}/reflection.hpp
-        COMMAND ./tooling/introspect_tool ${RELATIVE_SOURCES} ./tsmp/${target}/reflection.hpp
+        COMMAND ./tooling/introspect_tool ${RELATIVE_SOURCES} ./tsmp/${target}/reflection.hpp 2>&1 > ./tsmp/${target}/build.log
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS introspect_tool
         DEPENDS ${TARGET_SOURCES}
+        DEPENDS ${target}_header_dir
+        VERBATIM
     )
     add_custom_target(${target}_header
         DEPENDS ${CMAKE_BINARY_DIR}/tsmp/${target}/reflection.hpp

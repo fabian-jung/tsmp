@@ -32,10 +32,6 @@ TEST_CASE("member function reflection test", "[unit]") {
 
     foo_t foo {0, 0.0f};
     
-    #warning this line should not be needed
-    using reflect = tsmp::reflect<foo_t>;
-
-
     tsmp::introspect foo_introspecter(foo);
 
     static_assert(tsmp::introspect<foo_t>::field_id("i") == 0, "Index of i is wrong.");
@@ -91,4 +87,6 @@ TEST_CASE("member function reflection test", "[unit]") {
     constexpr auto foo_2 = foo_t{ 0, 0 }.inc();
     static_assert(foo_2.i == 1, "i should be 1");
     static_assert(tsmp::introspect{ foo_2 }.call<2>(5, 2) == 7, "2+5 must be equal to 7");
+    // static_assert(std::holds_alternative<int>(tsmp::introspect{ foo_2 }.get("i")), "Index i must be of type int");
+
 }

@@ -34,7 +34,10 @@ int main(int argc, const char* argv[]) {
         std::vector<std::string> compileArgs = utils::getCompileArgs(compileCommands);
         // compileArgs.push_back("-I" + utils::getClangBuiltInIncludePath(argv[0]));
         compileArgs.push_back("-DINTROSPECT_PASS");
-        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"); // Hard coded path to gcc includes
+        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed");
+        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"); // Hard coded path to gcc includes       
+        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/10/include"); // Hard coded path to gcc includes
+        
         // for(auto &s : compileArgs)
         //     llvm::outs() << s << "\n";
 
