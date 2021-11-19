@@ -40,7 +40,7 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
         if(
             name.size() > 0 &&
             name != record_decl.name && // Addresses of constructors can not be taken, therefore we can not reflect them
-             name.at(0) != '~' // Addresses of constructors can not be taken, therefore we can not reflect them
+            name.at(0) != '~' // Addresses of constructors can not be taken, therefore we can not reflect them
         ) {
             record_decl.functions.emplace_back(data::function_decl_t{std::move(name)});
         }

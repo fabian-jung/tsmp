@@ -66,6 +66,12 @@ TEST_CASE("member function reflection test", "[unit]") {
     foo_introspecter.get<"f">() = 42.0f;
     REQUIRE(foo.f == 42.0f);
 
+    REQUIRE(std::holds_alternative<int>(foo_introspecter.get("i")));
+    REQUIRE(std::get<int>(foo_introspecter.get("i")) == 42);
+    
+    REQUIRE(std::holds_alternative<float>(foo_introspecter.get("f")));
+    REQUIRE(std::get<float>(foo_introspecter.get("f")) == 42.0f);
+
     foo_introspecter.call<0>();
     REQUIRE(print_counter == 1);
     foo_introspecter.call<"print">();

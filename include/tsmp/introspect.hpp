@@ -2,7 +2,8 @@
 
 #include "reflect.hpp"
 #include "string_literal.hpp"
-
+#include <variant>
+#include <optional>
 namespace tsmp {
 template <class T>
 struct introspect {
@@ -13,13 +14,13 @@ struct introspect {
     {}
 
     static constexpr auto field_id(const std::string_view name) {
-        std::array matches = std::apply(
+        const std::array matches = std::apply(
             [&](auto... decls){
                 return std::array { (name == decls.name ? true : false)... };
             },
             reflect<T>::fields()
         );
-        auto pos = std::find(matches.begin(), matches.end(), true);
+        const auto pos = std::find(matches.begin(), matches.end(), true);
         if(pos == matches.end()) {
             throw std::runtime_error("function name does not exist");
         }
@@ -27,13 +28,13 @@ struct introspect {
     }
 
     static constexpr auto function_id(const std::string_view name) {
-        std::array matches = std::apply(
+        const std::array matches = std::apply(
             [&](auto... decls){
                 return std::array { (name == decls.name ? true : false)... };
             },
             reflect<T>::functions()
         );
-        auto pos = std::find(matches.begin(), matches.end(), true);
+        const auto pos = std::find(matches.begin(), matches.end(), true);
         if(pos == matches.end()) {
             throw std::runtime_error("function name does not exist");
         }
@@ -65,7 +66,29 @@ struct introspect {
         return get<id>();
     }
 
-    constexpr auto& get(const std::string_view) const;
+    template <class... Args>
+    constexpr auto get_impl(const std::string_view name, std::tuple<field_description_t<T, Args>...> fields) const {
+        const std::array matches = std::apply(
+            [&](auto... decls){
+                return std::array {
+                    (name == decls.name ?
+                        std::optional<std::variant<Args...>>( internal.*(decls.ptr) ) :
+                        std::optional<std::variant<Args...>>()
+                    )...
+                };
+            },
+            reflect<T>::fields()
+        );
+        const auto pos = std::find_if(matches.begin(), matches.end(), [](const auto& optional){ return optional.has_value(); });
+        if(pos == matches.end()) {
+            throw std::runtime_error("field name does not exist");
+        }
+        return pos->value();
+    }
+
+    constexpr auto get(const std::string_view name) const {
+        return get_impl(name, reflect<T>::fields());
+    }
 
 };
 }
