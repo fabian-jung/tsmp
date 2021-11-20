@@ -23,6 +23,7 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
     for(const auto& field : decl->fields()) {
         // const auto index = field->getFieldIndex();
         // auto name = field->getQualifiedNameAsString();
+        const auto access = field->getAccess();
         const auto type = field->getType();
         const auto builtin = type.getTypePtr()->isBuiltinType();
         if(!builtin) {
@@ -30,6 +31,10 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
         }
         // llvm::outs() << "field:" << field->getNameAsString() << ":" << type.getAsString() << " is builtin " << builtin << "\n";
         auto name = field->getNameAsString();
+        if(access != AS_public) {
+            llvm::outs() << "ignore private " << record_decl.name << "::" << name << "\n";
+            continue;
+        }
         if(name.size() > 0) {
             record_decl.fields.emplace_back(data::field_decl_t{std::move(name)});
         }

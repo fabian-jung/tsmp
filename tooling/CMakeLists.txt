@@ -36,7 +36,7 @@ function(enable_reflection target)
     )
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/tsmp/${target}/reflection.hpp
-        COMMAND ./tooling/introspect_tool ${RELATIVE_SOURCES} ./tsmp/${target}/reflection.hpp 2>&1 > ./tsmp/${target}/build.log
+        COMMAND ./tooling/introspect_tool ${RELATIVE_SOURCES} ./tsmp/${target}/reflection.hpp 2> ./tsmp/${target}/error.log 1> ./tsmp/${target}/build.log
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS introspect_tool
         DEPENDS ${TARGET_SOURCES}
