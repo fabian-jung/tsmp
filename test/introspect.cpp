@@ -66,7 +66,6 @@ TEST_CASE("compile-time get member attribute test", "[unit]") {
     REQUIRE(foo.f == 42.0f);
 }
 
-
 TEST_CASE("run-time get member attribute test", "[unit]") {
     foo_t foo {42, 43.0f};
     tsmp::introspect foo_introspecter(foo);
@@ -83,6 +82,26 @@ TEST_CASE("run-time get member attribute test", "[unit]") {
     foo_introspecter.set("f", 43.0f);
     REQUIRE(foo.f == 43.0f);
     REQUIRE_THROWS(foo_introspecter.set("f", 43));
+}
+
+TEST_CASE("run-time visit member attributes test", "[unit]") {
+    foo_t foo {42, 43.0f};
+    tsmp::introspect foo_introspecter(foo);
+
+    foo_introspecter.visit_fields([](auto id, auto name, auto& field){
+        if(name == "i") {
+            REQUIRE(field == 42);
+            REQUIRE(std::is_same_v<decltype(field), int&>);
+            field = 4;
+        } else if(name == "f") {
+            REQUIRE(field == 43.0f);
+            REQUIRE(std::is_same_v<decltype(field), float&>);
+            field = 5.0f;
+        }
+    });
+
+    REQUIRE(foo.i == 4);
+    REQUIRE(foo.f == 5.0f);
 }
 
 TEST_CASE("member function execution test", "[unit]") {
@@ -108,7 +127,6 @@ TEST_CASE("member function execution test", "[unit]") {
 
     foo_introspecter.call<"inc">();
     REQUIRE(foo.i == 45);
-
 }
 
 TEST_CASE("constexpr member function execution test", "[unit]") {

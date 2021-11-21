@@ -121,5 +121,15 @@ struct introspect {
             throw std::runtime_error("field name does not exist");
         }
     }
+
+    template <class Visitor>
+    constexpr void visit_fields(Visitor&& visitor) const {
+        std::apply(
+            [&](auto... decls){
+                (visitor(decls.id, decls.name,  internal.*(decls.ptr)), ...);
+            },
+            reflect<T>::fields()
+        );
+    } 
 };
 }
