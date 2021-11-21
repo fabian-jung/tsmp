@@ -2,9 +2,43 @@
 
 #include "reflect.hpp"
 #include "string_literal.hpp"
+#include <stdexcept>
 #include <variant>
 #include <optional>
 namespace tsmp {
+
+namespace detail {
+    template <class T, class... Args>
+    constexpr auto fetch_impl(T& internal, const std::string_view name, std::tuple<field_description_t<T, Args>...> fields) {
+        const std::array matches = std::apply(
+            [&](auto... decls){
+                return std::array {
+                    (name == decls.name ?
+                        std::optional<std::variant<Args...>>( internal.*(decls.ptr) ) :
+                        std::optional<std::variant<Args...>>()
+                    )...
+                };
+            },
+            tsmp::reflect<T>::fields()
+        );
+        const auto pos = std::find_if(matches.begin(), matches.end(), [](const auto& optional){ return optional.has_value(); });
+        if(pos == matches.end()) {
+            throw std::runtime_error("field name does not exist");
+        }
+        return pos->value();
+    }
+
+    template <class T, class V, class U>
+    static constexpr bool try_set(T& internal, V T::*ptr, U value) {
+        if constexpr(std::is_same_v<V, U>) {
+            internal.*ptr =  value;
+            return true;
+        } else {
+            throw std::runtime_error("type missmatch between ");
+        }
+    }
+}
+
 template <class T>
 struct introspect {
     T& internal;
@@ -66,29 +100,26 @@ struct introspect {
         return get<id>();
     }
 
-    template <class... Args>
-    constexpr auto get_impl(const std::string_view name, std::tuple<field_description_t<T, Args>...> fields) const {
-        const std::array matches = std::apply(
+    constexpr auto fetch(const std::string_view name) const {
+        return detail::fetch_impl(internal, name, reflect<T>::fields());
+    }
+
+    template <class Arg>
+    constexpr auto set(const std::string_view name, Arg arg) const {
+        const auto overwrite = std::apply(
             [&](auto... decls){
                 return std::array {
-                    (name == decls.name ?
-                        std::optional<std::variant<Args...>>( internal.*(decls.ptr) ) :
-                        std::optional<std::variant<Args...>>()
-                    )...
-                };
+                    (name == decls.name ? 
+                        detail::try_set(internal, decls.ptr, arg) :
+                        false
+                ) ...};
             },
             reflect<T>::fields()
         );
-        const auto pos = std::find_if(matches.begin(), matches.end(), [](const auto& optional){ return optional.has_value(); });
-        if(pos == matches.end()) {
+        const auto pos = std::find(overwrite.begin(), overwrite.end(), true);
+        if(pos == overwrite.end()) {
             throw std::runtime_error("field name does not exist");
         }
-        return pos->value();
     }
-
-    constexpr auto get(const std::string_view name) const {
-        return get_impl(name, reflect<T>::fields());
-    }
-
 };
 }
