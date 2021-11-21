@@ -1,7 +1,7 @@
 #include <string_view>
 #include <tuple>
 
-#include <tsmp/reflect.hpp>
+#include <tsmp/introspect.hpp>
 #include <iostream>
 
 template <typename T> concept arithmetic = std::is_arithmetic_v<T>;
@@ -20,29 +20,24 @@ std::string to_json(const std::string& value, const size_t indentation = 0) {
 }
 
 std::string to_json(const auto& value, const size_t indentation = 0) {
-    using type = std::remove_cv_t<std::remove_reference_t<std::remove_cv_t<decltype(value)>>>;
-    using reflect = typename tsmp::reflect<type>;
+    // using type = std::remove_cv_t<std::remove_reference_t<std::remove_cv_t<decltype(value)>>>;
+    tsmp::introspect introspecter{ value };
     std::string result;
     result += '\n'+std::string(indentation, ' ')+"{\n";
-    std::apply(
-        [&](auto... fields){
-            ([&](auto field) {
-                result += std::string(indentation+4, ' ');
-                result += field.name;
-                result += ":";
-                result += to_json(value.*(field.ptr), indentation+4);
-                result += ",\n";
-            }(fields), ...);
-        },
-        reflect::fields()
-    );
+    introspecter.visit_fields([&](size_t id, std::string_view name, const auto& value){
+        result += std::string(indentation+4, ' ');
+        result += name;
+        result += ":";
+        result += to_json(value, indentation+4);
+        result += ",\n";
+    });
     result += std::string(indentation, ' ')+"}";
     return result;
 
 }
 
 struct bar_t {
-    const char* baba = "baba ";
+    const char* baba = "baba";
 };
 
 struct foo_t {
