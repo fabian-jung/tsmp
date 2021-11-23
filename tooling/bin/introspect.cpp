@@ -8,6 +8,14 @@
 #include <fstream>
 #include <filesystem>
 
+class Parser : public clang::tooling::CommonOptionsParser {
+public:
+    template <class... Args>
+    Parser(Args... args) :
+        clang::tooling::CommonOptionsParser(args...)
+    {}
+};
+
 int main(int argc, const char* argv[]) {
     if(argc<3) {
         std::cerr << "Not enought parameters supplied. Usage is ./introspect_tool <input> [<input args>] <output>";
@@ -18,8 +26,7 @@ int main(int argc, const char* argv[]) {
 
     llvm::cl::OptionCategory ctCategory("clang-tool options");
     auto paramCout = argc - 1;
-    clang::tooling::CommonOptionsParser optionsParser(paramCout, argv, ctCategory);
-
+    Parser optionsParser(paramCout, argv, ctCategory);
     for(auto &sourceFile : optionsParser.getSourcePathList())
     {
         if(utils::fileExists(sourceFile) == false)

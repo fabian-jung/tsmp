@@ -26,11 +26,13 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
         const auto access = field->getAccess();
         const auto type = field->getType();
         const auto builtin = type.getTypePtr()->isBuiltinType();
+        auto name = field->getNameAsString();
         if(!builtin) {
             reflect_type(type->getAsCXXRecordDecl(), aggregator);
+        } else {
+            aggregator.add_trivial_type(type.getAsString());
         }
         // llvm::outs() << "field:" << field->getNameAsString() << ":" << type.getAsString() << " is builtin " << builtin << "\n";
-        auto name = field->getNameAsString();
         if(access != AS_public) {
             llvm::outs() << "ignore private " << record_decl.name << "::" << name << "\n";
             continue;
@@ -63,8 +65,12 @@ bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpe
     for(auto i : args) {
         if(i.getKind() == TemplateArgument::ArgKind::Type) {
             const auto type = i.getAsType();
-            const auto decl = type.getTypePtr()->getAsCXXRecordDecl();
-            reflect_type(decl, m_aggregator);
+            if(type->isBuiltinType()) {
+                m_aggregator.add_trivial_type(type.getAsString());
+            } else {
+                const auto decl = type.getTypePtr()->getAsCXXRecordDecl();
+                reflect_type(decl, m_aggregator);
+            }
         }
     }
     return true;

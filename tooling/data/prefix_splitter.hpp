@@ -9,9 +9,9 @@ namespace data {
 
 class prefix_splitter_t {
 public:
-    prefix_splitter_t(const std::vector<record_decl_t>& records = {});
+    prefix_splitter_t(const std::vector<record_decl_t>& records = {}, std::vector<std::string> trivial_types = {});
 
-    void add_record(const record_decl_t& record);
+    void add_record(record_decl_t record);
 
     const std::vector<field_decl_t>& fields() const;
     const std::vector<record_decl_t>& records() const;
@@ -31,6 +31,7 @@ private:
     std::vector<field_decl_t> m_fields;
     std::vector<function_decl_t> m_functions;
     std::vector<record_decl_t> m_records;
+    std::vector<std::string> m_trivial_types;
 };
 
 }

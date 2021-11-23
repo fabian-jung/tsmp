@@ -11,13 +11,26 @@
 #include <iostream>
 namespace data {
 
-prefix_splitter_t::prefix_splitter_t(const std::vector<record_decl_t>& records) {
+prefix_splitter_t::prefix_splitter_t(const std::vector<record_decl_t>& records, std::vector<std::string> trivial_types) :
+    m_trivial_types(std::move(trivial_types))
+{
     for(const auto& record : records) {
         add_record(record);
     }
 }
 
-void prefix_splitter_t::add_record(const record_decl_t& record) {
+void prefix_splitter_t::add_record(record_decl_t record) {
+    // Conversion Operator not supported for the moment
+    record.functions.erase(
+        std::remove_if(
+            record.functions.begin(),
+            record.functions.end(),
+            [](const auto& function) {
+                return function.name.find("operator") == 0; 
+            }
+        ),
+        record.functions.end()
+    );
     for(auto& r : m_records) {
         if(field_list_match(r, record)) {
             r.name = "<unknown>";
@@ -30,7 +43,7 @@ void prefix_splitter_t::add_record(const record_decl_t& record) {
     for(const auto& field : record.fields) {
         add_field(field);
     }
-    for(const auto& function : record.functions) {
+    for(auto function : record.functions) {
         add_function(function);
     }
     m_records.emplace_back(record);
@@ -138,21 +151,21 @@ std::string prefix_splitter_t::render() const {
 R"(template <class T>
 {}
 struct reflect{} {{
-static constexpr bool reflectable = true;
-constexpr static auto name() {{
-    return "{}";
-}}
-constexpr static auto fields() {{
-    return std::make_tuple(
-{}
-    );
-}}
+    static constexpr bool reflectable = true;
+    constexpr static auto name() {{
+        return "{}";
+    }}
+    constexpr static auto fields() {{
+        return std::make_tuple(
+    {}
+        );
+    }}
 
-constexpr static auto functions() {{
-    return std::make_tuple(
-{}
-    );
-}}
+    constexpr static auto functions() {{
+        return std::make_tuple(
+    {}
+        );
+    }}
 }};
 
 )",
@@ -161,6 +174,29 @@ constexpr static auto functions() {{
                 record.name,
                 fields,
                 functions
+            );
+    }
+
+    for(auto record : m_trivial_types) {
+        result += 
+            fmt::format(
+R"(template <>
+struct reflect<{0}> {{
+    static constexpr bool reflectable = true;
+    constexpr static auto name() {{
+        return "{0}";
+    }}
+    constexpr static auto fields() {{
+        return std::make_tuple();
+    }}
+
+    constexpr static auto functions() {{
+        return std::make_tuple();
+    }}
+}};
+
+)",
+                record
             );
     }
     return result;

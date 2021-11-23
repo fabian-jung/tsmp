@@ -2,7 +2,10 @@
 
 #include "reflect.hpp"
 #include "string_literal.hpp"
+#include <algorithm>
+#include <functional>
 #include <stdexcept>
+#include <type_traits>
 #include <variant>
 #include <optional>
 namespace tsmp {
@@ -123,10 +126,40 @@ struct introspect {
     }
 
     template <class Visitor>
-    constexpr void visit_fields(Visitor&& visitor) const {
-        std::apply(
-            [&](auto... decls){
-                (visitor(decls.id, decls.name,  internal.*(decls.ptr)), ...);
+    constexpr auto visit_fields(Visitor&& visitor) const {
+        constexpr auto results_match_void =
+            std::apply(
+                [](auto... decls){
+                    return std::array {
+                        std::is_same_v<
+                            void,
+                            std::invoke_result_t<
+                                Visitor,
+                                decltype(decls.id),
+                                decltype(decls.name),
+                                decltype(std::declval<T&>().*(decls.ptr))
+                            >
+                        >...
+                    };
+                },
+                reflect<T>::fields()
+            );
+
+        constexpr bool result_is_void = std::all_of(
+            results_match_void.begin(), 
+            results_match_void.end(),
+            std::identity()
+        );
+
+        return std::apply(
+            [result_is_void, visitor = std::forward<Visitor>(visitor), this](auto... decls) {
+                if constexpr(result_is_void) {
+                    (visitor(decls.id, decls.name,  internal.*(decls.ptr)), ...);
+                } else {         
+                    return std::array {
+                        visitor(decls.id, decls.name,  internal.*(decls.ptr))...
+                    };
+                }
             },
             reflect<T>::fields()
         );
