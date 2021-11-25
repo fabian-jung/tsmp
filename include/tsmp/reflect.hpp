@@ -23,6 +23,9 @@ struct reflect;
 template <class T>
 struct reflect {
     constexpr static bool reflectable = false;
+    constexpr static auto name()  {
+        return "";
+    }
     constexpr static auto fields() {
         return std::make_tuple();
     }
