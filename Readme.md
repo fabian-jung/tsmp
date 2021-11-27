@@ -76,7 +76,7 @@ enable_reflection(example) # This line will add code generation for this target
 # Dependencies
 
 The ```tsmp::reflect<>``` trait is specialized using concepts. Therefore a c++20 compliant compiler is required. gcc-11 is used in the CI-Pipeline. Additionaly libclang and the llvm runtime needs to be installed. The code generator is implemented with the help of the fmt lib.
-The [ci pipeline](.github/workflows.yml) shows a complete workflow including setup, build and test execution based on a ubuntu 20.04 image.
+The [ci pipeline](.github/workflows/cmake.yml) shows a complete workflow including setup, build and test execution based on a ubuntu 20.04 image.
 
 # API
 
@@ -129,7 +129,7 @@ int main() {
 
 ## Introspect by reference
 
-Working with tuples and pointer-to-member(functions) can be quite cumbersome. For that reason there is a helper class that can be used to directly access members of lvalues. This utility class is called ```tsmp::introspect``` and the implementation can be found here [introspect.hpp](include/introspect.hpp). The interface looks more or less like this:
+Working with tuples and pointer-to-member(functions) can be quite cumbersome. For that reason there is a helper class that can be used to directly access members of lvalues. This utility class is called ```tsmp::introspect``` and the implementation can be found here [introspect.hpp](include/tsmp/introspect.hpp). The interface looks more or less like this:
 
 ```cpp
 
@@ -234,4 +234,4 @@ The cmake build system will take care of generating this header, setting the inc
 
 # Discussion
 
-This library is not production ready and needs to handle a lot more of the corner cases. The basic idea seems viable, but all the corner cases needs to be addressed. If you want a further read into the code base I recommend starting with the [examples](examples), [reflect](test/reflect.cpp) and [introspect](test/introspect.cpp) tests and work your way up from there. If you are interested in the source tree parsing take a look at the [bin/introspect.cpp](bin/introspect.cpp)
+This library is not production ready and needs to handle a lot more of the corner cases. The basic idea seems viable, but all the corner cases needs to be addressed. If you want a further read into the code base I recommend starting with the [examples](examples), [reflect](test/reflect.cpp) and [introspect](test/introspect.cpp) tests and work your way up from there. If you are interested in the source tree parsing take a look at the [bin/introspect.cpp](tooling/bin/introspect.cpp)
