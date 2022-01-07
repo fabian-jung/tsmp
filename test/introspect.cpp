@@ -1,7 +1,9 @@
 #include <algorithm>
+#include <functional>
 #include <stdexcept>
 #include <tsmp/introspect.hpp>
 #include <catch2/catch.hpp>
+#include <variant>
 
 int print_counter = 0;
 int print2_counter = 0;
@@ -10,11 +12,11 @@ struct foo_t {
     int i;
     float f;
 
-    void print() {
+    void print() const {
         ++print_counter;
     }
 
-    void print2(int i) {
+    void print2(int i) const {
         ++print2_counter;
     }
 
@@ -104,22 +106,50 @@ TEST_CASE("run-time visit member attributes test", "[unit]") {
     REQUIRE(foo.f == 5.0f);
 }
 
-TEST_CASE("member function execution test", "[unit]") {
-    foo_t foo {43, 0.0f};
+TEST_CASE("member function execution test, no arguments, no result", "[unit]") {
+    const foo_t foo {43, 0.0f};
     tsmp::introspect foo_introspecter(foo);
     print_counter = 0;
-    print2_counter = 0;
 
     foo_introspecter.call<0>();
     REQUIRE(print_counter == 1);
     foo_introspecter.call<"print">();
     REQUIRE(print_counter == 2);
+    const auto invoke_result = foo_introspecter.invoke("print");
+    REQUIRE(std::holds_alternative<std::monostate>(invoke_result));
+    REQUIRE(print_counter == 3);
+}
+
+TEST_CASE("member function execution test, with arguments, no result", "[unit]") {
+    const foo_t foo {43, 0.0f};
+    tsmp::introspect foo_introspecter(foo);
+    print2_counter = 0;
+
     foo_introspecter.call<1>(42);
     REQUIRE(print2_counter == 1);
     foo_introspecter.call<"print2">(42);
     REQUIRE(print2_counter == 2);
+    const auto invoke_result = foo_introspecter.invoke("print2", 5);
+    REQUIRE(std::holds_alternative<std::monostate>(invoke_result));
+    REQUIRE(print2_counter == 3);
+}
+
+TEST_CASE("member function execution test, with arguments and result","[unit]") {
+    const foo_t foo {43, 0.0f};
+    tsmp::introspect foo_introspecter(foo);
+
     REQUIRE(foo_introspecter.call<2>(5, 2) == 7);
     REQUIRE(foo_introspecter.call<"add">(5, 2) == 7);
+    const auto invoke_result = foo_introspecter.invoke("add", 5, 2);
+    REQUIRE(std::holds_alternative<int>(invoke_result));
+    REQUIRE(std::get<int>(invoke_result) == 7);
+}
+
+TEST_CASE("member function execution test with state change", "") {
+    foo_t foo {43, 0.0f};
+    tsmp::introspect foo_introspecter(foo);
+    print_counter = 0;
+    print2_counter = 0;
 
     REQUIRE(foo.i == 43);
     foo_introspecter.call<3>();
@@ -127,11 +157,17 @@ TEST_CASE("member function execution test", "[unit]") {
 
     foo_introspecter.call<"inc">();
     REQUIRE(foo.i == 45);
+
+    const auto invoke_result = foo_introspecter.invoke("inc");
+    REQUIRE(std::holds_alternative<std::reference_wrapper<foo_t>>(invoke_result) == true);
+    REQUIRE(&(std::get<std::reference_wrapper<foo_t>>(invoke_result).get()) == &foo);
+    REQUIRE(foo.i == 46);
 }
 
 TEST_CASE("constexpr member function execution test", "[unit]") {
     constexpr auto foo_2 = foo_t{ 0, 0 }.inc();
     static_assert(foo_2.i == 1, "i should be 1");
     static_assert(tsmp::introspect{ foo_2 }.call<2>(5, 2) == 7, "2+5 must be equal to 7");
+    static_assert(std::get<int>(tsmp::introspect{ foo_2 }.invoke("add", 5, 2)) == 7, "2+5 must be equal to 7");
     // static_assert(std::holds_alternative<int>(tsmp::introspect{ foo_2 }.get("i")), "Index i must be of type int");
 }

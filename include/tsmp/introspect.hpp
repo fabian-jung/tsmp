@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
+#include <string_view>
 #include <type_traits>
 #include <variant>
 #include <optional>
@@ -40,6 +41,69 @@ namespace detail {
             throw std::runtime_error("type missmatch between ");
         }
     }
+
+    template<class... FunctionsTuple>
+    struct result_variant;
+
+    template <class MemberFunctionPtr>
+    struct result;
+
+    template <class T, class Result, class... Args>
+    struct result<Result (T::*)(Args...)> {
+        using type = Result;
+    };
+
+    template <class Result, class... Args>
+    struct result<Result(Args...)> {
+        using type = Result;
+    };
+
+    template <class Result, class... Args>
+    struct result<Result(Args...) const> {
+        using type = Result;
+    };
+
+    template <class T>
+    using result_t = typename result<T>::type;
+    
+    template <class T>
+    using reference_wrapper_t = std::conditional_t<std::is_reference_v<T>, std::reference_wrapper<std::remove_reference_t<T>>, T>;
+
+    template <class T>
+    using monostate_wrapper_t = std::conditional_t<std::is_same_v<T, void>, std::monostate, T>;
+    
+    template <class T>
+    struct remove_duplicates;
+    
+    template <class T>
+    using remove_duplicates_t = typename remove_duplicates<T>::type;
+
+    template <>
+    struct remove_duplicates<std::variant<>> {
+        using type = std::variant<>;
+    };
+
+    template <class T, class Variant>
+    struct add_type;
+
+    template <class T, class... Ts>
+    struct add_type<T, std::variant<Ts...>> {
+        using type = std::conditional_t<(std::is_same_v<T, Ts> || ...), std::variant<Ts...>, std::variant<T, Ts...>>;
+    };
+
+    template <class T, class... Ts>
+    struct remove_duplicates<std::variant<T, Ts...>> {
+        using type = typename add_type<T, remove_duplicates_t<std::variant<Ts...>>>::type;
+    };
+
+    template <class Base, class... MemberFunctionPtr>
+    struct result_variant<std::tuple<tsmp::field_description_t<Base, MemberFunctionPtr>...>> {
+        using type = remove_duplicates_t<std::variant<reference_wrapper_t<monostate_wrapper_t<result_t<MemberFunctionPtr>>>...>>;
+    };
+
+    template <class Functions>
+    using result_variant_t = typename result_variant<Functions>::type;
+
 }
 
 template <class T>
@@ -79,16 +143,50 @@ struct introspect {
     }
 
     template <size_t id, class... Args>
-    constexpr decltype(auto) call(Args... args) const {
+    constexpr decltype(auto) call(Args&&... args) const {
         constexpr auto ptr = std::get<id>(reflect<T>::functions()).ptr;
-        return (internal.*ptr)(args...);
+        return (internal.*ptr)(std::forward<Args>(args)...);
     }
 
     template <string_literal_t name, class... Args>
-    constexpr decltype(auto) call(Args... args) const {
+    constexpr decltype(auto) call(Args&&... args) const {
         constexpr auto id = function_id(name);
         constexpr auto ptr = std::get<id>(reflect<T>::functions()).ptr;
-        return (internal.*ptr)(args...);
+        return (internal.*ptr)(std::forward<Args>(args)...);
+    }
+
+    template <class... Args>
+    constexpr decltype(auto) invoke(const size_t id, Args&&... args) {
+        constexpr auto functions = std::apply(
+            [](auto... elements){
+                return std::array<std::variant<decltype(elements.ptr)...>, sizeof...(elements)> { elements.ptr... };
+            },
+            reflect<T>::functions()
+        );
+        auto variant = functions[id];
+        using result_t = detail::result_variant_t<decltype(reflect<T>::functions())>;
+
+        return std::visit(
+            [&](auto&& ptr) -> result_t {
+                if constexpr(std::is_invocable_v<decltype(ptr), T, Args...>) {
+                    if constexpr(std::is_same_v<std::invoke_result_t<decltype(ptr), T, Args...>, void>) {
+                        (internal.*ptr)(std::forward<Args>(args)...);
+                        return {};
+                    } else {
+                        return { (internal.*ptr)(std::forward<Args>(args)...) };
+                    }
+                } else {
+                    throw std::runtime_error("member function parameter missmatch.");
+                }
+            },
+            variant
+        );
+    }
+
+    template <class... Args>
+    constexpr decltype(auto) invoke(const std::string_view name, Args&&... args) {
+        const auto id = function_id(name);
+        return invoke(id, std::forward<Args>(args)...);
     }
 
     template <size_t id>
