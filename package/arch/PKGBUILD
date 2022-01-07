@@ -1,0 +1,29 @@
+# Maintainer: Fabian Jung <git@fabian-jung.info>
+pkgname=tsmp
+pkgver=0.1
+pkgrel=1
+pkgdesc='C++ Reflection Library'
+arch=('x86_64')
+url='https://github.com/fabian-jung/tsmp'
+license=('MIT')
+depends=('gcc' 'fmt') # 'llvm' 'llvm-libs'
+checkdepends=('catch2')
+optdepends=()
+
+build() {
+    cmake \
+        -B build \
+        -S ../../.. \
+        -DCMAKE_BUILD_TYPE:STRING='RelWithDebInfo' \
+        -DCMAKE_CXX_COMPILER=g++ \
+        -DCMAKE_C_COMPILER=gcc
+    cmake --build build --parallel 32 --target all
+}
+
+check() {
+    cmake --build build --target test
+}
+
+package() {
+    cmake --install build --prefix "$pkgdir"/usr
+}

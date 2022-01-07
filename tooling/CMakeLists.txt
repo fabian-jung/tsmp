@@ -27,6 +27,7 @@ add_executable(introspect_tool bin/introspect.cpp)
 target_link_libraries(introspect_tool PUBLIC introspect_lib)
 
 function(enable_reflection target)
+    set(INTROSPECT_TOOL ./tooling/introspect_tool)
     get_target_property(TARGET_SOURCES ${target} SOURCES)
     file(RELATIVE_PATH RELATIVE_SOURCES ${CMAKE_BINARY_DIR} ${TARGET_SOURCES})
     message(STATUS "Sources for ${target}: ${TARGET_SOURCES} ${RELATIVE_SOURCES}")
@@ -34,9 +35,10 @@ function(enable_reflection target)
         ${target}_header_dir
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/tsmp/${target}
     )
+    message(STATUS "Introspect tool used: ${INTROSPECT_TOOL}")
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/tsmp/${target}/reflection.hpp
-        COMMAND ./tooling/introspect_tool ${RELATIVE_SOURCES} ./tsmp/${target}/reflection.hpp 2> ./tsmp/${target}/error.log 1> ./tsmp/${target}/build.log
+        COMMAND ${INTROSPECT_TOOL} ${RELATIVE_SOURCES} ./tsmp/${target}/reflection.hpp 2> ./tsmp/${target}/error.log 1> ./tsmp/${target}/build.log
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS introspect_tool
         DEPENDS ${TARGET_SOURCES}

@@ -7,14 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
-
-class Parser : public clang::tooling::CommonOptionsParser {
-public:
-    template <class... Args>
-    Parser(Args... args) :
-        clang::tooling::CommonOptionsParser(args...)
-    {}
-};
+#include <vector>
 
 int main(int argc, const char* argv[]) {
     if(argc<3) {
@@ -23,11 +16,10 @@ int main(int argc, const char* argv[]) {
     }
     std::string output_file(argv[argc-1]);
 
+    std::cout << "running in: " << std::filesystem::current_path() << std::endl;
 
-    llvm::cl::OptionCategory ctCategory("clang-tool options");
     auto paramCout = argc - 1;
-    Parser optionsParser(paramCout, argv, ctCategory);
-    for(auto &sourceFile : optionsParser.getSourcePathList())
+    for(auto &sourceFile : std::vector<const char*>(argv+1, argv+argc-1))
     {
         if(utils::fileExists(sourceFile) == false)
         {
@@ -36,7 +28,12 @@ int main(int argc, const char* argv[]) {
         }
 
         auto sourcetxt = utils::getSourceCode(sourceFile);
-        auto compileCommands = optionsParser.getCompilations().getCompileCommands(clang::tooling::getAbsolutePath(sourceFile));
+        std::string error;
+        const auto compilation_database = clang::tooling::CompilationDatabase::loadFromDirectory(std::filesystem::current_path().native(),  error);
+        if(!compilation_database) {
+            std::cerr << "compilation database not found under " << std::filesystem::current_path() << std::endl;
+        }
+        auto compileCommands = compilation_database->getCompileCommands(clang::tooling::getAbsolutePath(sourceFile));
 
         std::vector<std::string> compileArgs = utils::getCompileArgs(compileCommands);
         // compileArgs.push_back("-I" + utils::getClangBuiltInIncludePath(argv[0]));
