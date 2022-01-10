@@ -41,18 +41,18 @@ int main(int, char*[]) {
     }};
 
     tsmp::unique_proxy
-     pfoo2 { std::move(pfoo) };
+    pfoo2 { std::move(pfoo) };
     
     auto result = pfoo.add(5, 7);
     pfoo.i = 12;
     std::cout << "result is " << result << std::endl;
 
-    tsmp::polymorphic_value_proxy<interface_t> pvalue1 { foo_impl{} };
+    tsmp::polymorphic_value<interface_t> pvalue1 { foo_impl{} };
     pvalue1.print();
 
     auto cpy_foo = pvalue1;
     cpy_foo.print();
 
-    tsmp::polymorphic_value_proxy<interface_t> pvalue2 { bar_impl{} };
+    tsmp::polymorphic_value<interface_t> pvalue2 { bar_impl{} };
     pvalue2.print();
 }

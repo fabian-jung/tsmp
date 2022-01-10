@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <functional>
@@ -56,34 +57,45 @@ struct value_proxy : public proxy<T, detail::Identity, detail::IdentityAccessor,
 };
 
 template <class T, class Functor = detail::IdentityFunctor> requires std::has_virtual_destructor_v<T>
-struct polymorphic_value_proxy : public proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> {
+struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> {
 
     template<class C> 
     requires std::derived_from<C, T>
-    polymorphic_value_proxy(C value) :
+    polymorphic_value(C value) :
         proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ new C{std::move(value) } } },
         tsmp_copy_helper{ 
             [](const T* b){ 
-                return new C{ *(dynamic_cast<const C*>(b)) }; 
+                if constexpr(std::is_copy_constructible_v<C>) {
+                    return new C{ *(dynamic_cast<const C*>(b)) };
+                } else {
+                    return nullptr;
+                }
             }
         }
     {}
 
-    polymorphic_value_proxy(const polymorphic_value_proxy& cpy) :
+    polymorphic_value(const polymorphic_value& cpy) :
         proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.base.get()) } },
         tsmp_copy_helper{cpy.tsmp_copy_helper}
-    {}
+    {
+        if(this->base.get() == nullptr) {
+            throw std::runtime_error("Trying to copy non copyable value.");
+        }
+    }
 
-    polymorphic_value_proxy(polymorphic_value_proxy&& ) = default;
+    polymorphic_value(polymorphic_value&& ) = default;
     
-    polymorphic_value_proxy& operator=(const polymorphic_value_proxy& cpy) {
+    polymorphic_value& operator=(const polymorphic_value& cpy) {
         proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor>::base = detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.base.get()) };
         tsmp_copy_helper = cpy.tsmp_copy_helper;
+        if(this->base.get() == nullptr) {
+            throw std::runtime_error("Trying to copy non copyable value.");
+        }
     };
 
-    polymorphic_value_proxy& operator=(polymorphic_value_proxy&&) = default;
+    polymorphic_value& operator=(polymorphic_value&&) = default;
 
-    ~polymorphic_value_proxy() = default;
+    ~polymorphic_value() = default;
 
     private:
         std::function<T*(const T*)> tsmp_copy_helper;

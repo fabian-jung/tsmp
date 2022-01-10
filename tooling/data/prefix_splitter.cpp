@@ -7,8 +7,6 @@
 #include <algorithm>
 #include <iterator>
 #include <set>
-
-#warning "dont include iostream"
 #include <iostream>
 namespace data {
 
@@ -107,12 +105,28 @@ std::string prefix_splitter_t::render() const {
         );
     }
 
+    std::vector<std::string> escaped_function_names;
+    std::transform(
+        m_functions.begin(),
+        m_functions.end(),
+        std::back_inserter(escaped_function_names),
+        [](const auto& fn_decl) {
+            return strip_special_chars(fn_decl.name);
+        }
+    );
+
+    for(auto function_name : escaped_function_names) {
+        result += fmt::format(
+            "template<class T> concept has_function_{0} = requires(T) {{ &T::{0}; }};\n",
+            function_name
+        );
+    }
     
     result += '\n';
 
     for(auto record : m_records) {
         // trait impl ...
-        std::vector<std::string> escaped_function_names;
+        escaped_function_names.clear();
         std::transform(
             record.functions.begin(),
             record.functions.end(),
@@ -121,13 +135,6 @@ std::string prefix_splitter_t::render() const {
                 return strip_special_chars(fn_decl.name);
             }
         );
-
-        for(auto function_name : escaped_function_names) {
-            result += fmt::format(
-                "template<class T> concept has_function_{0} = requires(T) {{ &T::{0}; }};\n",
-                function_name
-            );
-        }
         
         std::string fields, functions, proxy_members, proxy_functions;
         int i = 0;

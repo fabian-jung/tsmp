@@ -4,6 +4,7 @@ target_link_libraries(catch_main PUBLIC Catch2::Catch2)
 set(TESTS
     ${CMAKE_CURRENT_LIST_DIR}/reflect.cpp
     ${CMAKE_CURRENT_LIST_DIR}/introspect.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/proxy.cpp
 )
 
 foreach(file ${TESTS})
