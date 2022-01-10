@@ -19,4 +19,13 @@ void reflection_aggregator_t::add_trivial_type(std::string name) {
     m_trivial_types.emplace_back(std::move(name));
 }
 
+void reflection_aggregator_t::add_proxy_decl(record_decl_t decl) {
+    if(std::find(m_records.begin(), m_records.end(), decl) != m_records.end()) {
+        // duplicate declaration
+        return;
+    }
+    m_records.emplace_back(std::move(decl));
+}
+
+
 }

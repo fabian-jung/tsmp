@@ -1,4 +1,5 @@
 #include "introspect_visitor.hpp"
+#include <iostream>
 #include <sstream>
 using namespace clang;
 
@@ -55,23 +56,43 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
     aggregator.add_record_decl(std::move(record_decl));
 }
 
+void proxy_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator) {
+    reflect_type(decl, aggregator);
+}
+
+
 bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpecializationDecl *Declaration) {
     // llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
-    if(Declaration->getDeclName().getAsString() != "reflect") {
-        return true;
-    }
-    llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
-    const auto args = Declaration->getTemplateArgs().asArray();
-    for(auto i : args) {
-        if(i.getKind() == TemplateArgument::ArgKind::Type) {
-            const auto type = i.getAsType();
-            if(type->isBuiltinType()) {
-                m_aggregator.add_trivial_type(type.getAsString());
-            } else {
-                const auto decl = type.getTypePtr()->getAsCXXRecordDecl();
-                reflect_type(decl, m_aggregator);
+    if(Declaration->getDeclName().getAsString() == "reflect") {
+        llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
+        const auto args = Declaration->getTemplateArgs().asArray();
+        for(auto i : args) {
+            if(i.getKind() == TemplateArgument::ArgKind::Type) {
+                const auto type = i.getAsType();
+                if(type->isBuiltinType()) {
+                    m_aggregator.add_trivial_type(type.getAsString());
+                } else {
+                    const auto decl = type.getTypePtr()->getAsCXXRecordDecl();
+                    reflect_type(decl, m_aggregator);
+                }
             }
         }
     }
+
+    if(Declaration->getDeclName().getAsString() == "proxy") {
+        llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
+        const auto args = Declaration->getTemplateArgs().asArray();
+        if(args.size() >= 1) {
+            const auto type = args.front().getAsType();
+            if(!type->isBuiltinType()) {
+                const auto decl = type.getTypePtr()->getAsCXXRecordDecl();
+                proxy_type(decl, m_aggregator);
+            } else {
+                std::cerr << "Built in types can not be proxied." << std::endl;
+            }
+        }
+    }
+
+    
     return true;
 }       

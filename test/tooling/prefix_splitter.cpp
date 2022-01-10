@@ -1,3 +1,4 @@
+#include "data/types.hpp"
 #include <catch2/catch.hpp>
 
 #include <data/prefix_splitter.hpp>
@@ -20,6 +21,22 @@ TEST_CASE("prefix_splitter_t simple construction", "[core][unit]") {
     REQUIRE(splitter.records()[1].name == "bar_t");
 }
 
+TEST_CASE("prefix_splitter_t simple construction 2", "[core][unit]") {
+    const std::vector<record_decl_t> records {
+        record_decl_t{ "foo_t", {}, { function_decl_t{"i"} } },
+        record_decl_t{ "bar_t", {}, { function_decl_t{"j"} } }
+    };
+    data::prefix_splitter_t splitter{ records };
+
+    REQUIRE(splitter.functions()[0].name == "i");
+    REQUIRE(splitter.functions()[1].name == "j");
+    
+    REQUIRE(splitter.records()[0].name == "foo_t");
+    REQUIRE(splitter.records()[1].name == "bar_t");
+
+    std::cout << splitter.render() << std::endl;
+}
+
 TEST_CASE("prefix_splitter_t zero fields construction", "[core][unit]") {
     const std::vector<record_decl_t> records {
         record_decl_t{ "foo_t", { } },
@@ -31,8 +48,6 @@ TEST_CASE("prefix_splitter_t zero fields construction", "[core][unit]") {
     
     REQUIRE(splitter.records().size() == 1);
     REQUIRE(splitter.records()[0].name == "<unknown>");
-
-    std::cout << splitter.render() << std::endl;
 }
 
 TEST_CASE("prefix_splitter_t shared  field construction", "[core][unit]") {

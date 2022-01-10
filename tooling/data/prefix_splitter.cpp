@@ -6,6 +6,7 @@
 #include <fmt/ranges.h>
 #include <algorithm>
 #include <iterator>
+#include <set>
 
 #warning "dont include iostream"
 #include <iostream>
@@ -51,6 +52,10 @@ void prefix_splitter_t::add_record(record_decl_t record) {
 
 const std::vector<field_decl_t>& prefix_splitter_t::fields() const {
     return m_fields;
+};
+
+const std::vector<function_decl_t>& prefix_splitter_t::functions() const {
+    return m_functions;
 };
 
 const std::vector<record_decl_t>& prefix_splitter_t::records() const {
@@ -102,36 +107,61 @@ std::string prefix_splitter_t::render() const {
         );
     }
 
-    std::vector<std::string> escaped_function_names;
-    std::transform(
-        m_functions.begin(),
-        m_functions.end(),
-        std::back_inserter(escaped_function_names),
-        [](const auto& fn_decl) {
-            return strip_special_chars(fn_decl.name);
-        }
-    );
-
-    for(auto function_name : escaped_function_names) {
-        result += fmt::format(
-            "template<class T> concept has_function_{0} = requires(T) {{ &T::{0}; }};\n",
-            function_name
-        );
-    }
+    
     result += '\n';
 
     for(auto record : m_records) {
         // trait impl ...
-        std::string fields, functions;
+        std::vector<std::string> escaped_function_names;
+        std::transform(
+            record.functions.begin(),
+            record.functions.end(),
+            std::back_inserter(escaped_function_names),
+            [](const auto& fn_decl) {
+                return strip_special_chars(fn_decl.name);
+            }
+        );
+
+        for(auto function_name : escaped_function_names) {
+            result += fmt::format(
+                "template<class T> concept has_function_{0} = requires(T) {{ &T::{0}; }};\n",
+                function_name
+            );
+        }
+        
+        std::string fields, functions, proxy_members, proxy_functions;
         int i = 0;
         for(const auto& f : record.fields) {
             fields += fmt::format("\t\t\tfield_description_t{{ {0}, \"{1}\", &T::{1} }},\n", i++, f.name);
+            proxy_members += fmt::format("\tdecltype(accessor(base).{0})& {0} = accessor(base).{0};\n", f.name);
         }
         i = 0;
+        std::set<std::string> function_names;
+        std::transform(
+            record.functions.begin(),
+            record.functions.end(),
+            std::inserter(function_names, function_names.end()),
+            [](const auto& decl){ return decl.name;
+        });
+
         for(const auto& f : record.functions) {
             if(f.name == "~") continue;
             functions += fmt::format("\t\t\tfield_description_t{{ {0}, \"{1}\", &T::{1} }},\n", i++, f.name);
         }
+
+        for(const auto& name : function_names) {
+            if(name == "~") continue;
+            proxy_functions += fmt::format(
+R"(    template <class... Args>
+    constexpr decltype(auto) {0}(Args&&... args) {{
+        auto base_function = [this](auto... args){{ return accessor(base).{0}(std::forward<decltype(args)>(args)...); }};
+        return fn(base_function, "{0}", std::forward<Args>(args)...);
+    }}
+)",
+                name
+            );
+        }
+
         std::string requirements = (!record.functions.empty()||!record.fields.empty()) ? "requires " : "";
         if(!record.fields.empty()) {
             fields.resize(fields.size()-2);
@@ -175,6 +205,27 @@ struct reflect{} {{
                 fields,
                 functions
             );
+
+        result+=
+            fmt::format(
+R"(template <class T, template<class> class Container, class Accessor, class Functor> 
+{}
+struct proxy{} {{
+    Container<T> base;
+    Accessor accessor; // maps container<foo_t> to foo_t&
+    Functor fn; // User function
+
+{}
+
+{}
+}};
+
+)",
+        requirements,
+        requirements.empty() ? "" : "<T, Container, Accessor, Functor>",
+        proxy_members,
+        proxy_functions
+    );
     }
 
     for(auto record : m_trivial_types) {
@@ -199,6 +250,7 @@ struct reflect<{0}> {{
                 record
             );
     }
+
     return result;
 }
 

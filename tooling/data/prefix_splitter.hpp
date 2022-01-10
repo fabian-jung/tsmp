@@ -14,6 +14,7 @@ public:
     void add_record(record_decl_t record);
 
     const std::vector<field_decl_t>& fields() const;
+    const std::vector<function_decl_t>& functions() const;
     const std::vector<record_decl_t>& records() const;
     
     static std::string strip_special_chars(std::string input);
