@@ -39,9 +39,9 @@ int main(int argc, const char* argv[]) {
         // compileArgs.push_back("-I" + utils::getClangBuiltInIncludePath(argv[0]));
         compileArgs.push_back("-ferror-limit=0");
         compileArgs.push_back("-DINTROSPECT_PASS"); 
-        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"); // Hard coded path to gcc includes       
+        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/12.1.0/include"); // TODO: Hard coded path to gcc includes       
         compileArgs.push_back("-I/usr/local/include");
-        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed");
+        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/12.1.0/include-fixed");
         compileArgs.push_back("-I/usr/include");    
         
         // for(auto &s : compileArgs)

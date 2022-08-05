@@ -2,7 +2,7 @@ project(introspect)
 cmake_minimum_required(VERSION 3.0.0)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-find_package(Catch2 REQUIRED)
+find_package(Catch2 CONFIG REQUIRED)
 include(CTest NO_POLICY_SCOPE)
 include(Catch NO_POLICY_SCOPE)
 include(ParseAndAddCatchTests)
@@ -21,7 +21,7 @@ add_subdirectory(examples)
 add_subdirectory(test)
 
 install(TARGETS tsmp introspect_tool EXPORT tsmpConfig DESTINATION lib/tsmp)
-install(EXPORT tsmpConfig NAMESPACE tsmp:: FILE tsmpTargets.cmake DESTINATION lib/cmake/tsmp EXPORT_LINK_INTERFACE_LIBRARIES)
+install(EXPORT tsmpConfig NAMESPACE tsmp:: FILE tsmpTargets.cmake DESTINATION lib/cmake/tsmp)
 
 install(TARGETS introspect_tool RUNTIME DESTINATION bin)
 install(FILES tsmpConfig.cmake DESTINATION lib/cmake/tsmp)

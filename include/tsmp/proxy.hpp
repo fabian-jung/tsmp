@@ -91,7 +91,7 @@ struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::Dereferenc
         if(this->base.get() == nullptr) {
             throw std::runtime_error("Trying to copy non copyable value.");
         }
-    };
+    }
 
     polymorphic_value& operator=(polymorphic_value&&) = default;
 

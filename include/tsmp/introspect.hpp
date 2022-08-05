@@ -13,7 +13,7 @@ namespace tsmp {
 
 namespace detail {
     template <class T, class... Args>
-    constexpr auto fetch_impl(T& internal, const std::string_view name, std::tuple<field_description_t<T, Args>...> fields) {
+    constexpr auto fetch_impl(T& internal, const std::string_view name, std::tuple<field_description_t<T, Args>...>) {
         const std::array matches = std::apply(
             [&](auto... decls){
                 return std::array {

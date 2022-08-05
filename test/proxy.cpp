@@ -1,6 +1,6 @@
 #include <string_view>
 #include <tsmp/proxy.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 struct foo_t {
     int a = 0;

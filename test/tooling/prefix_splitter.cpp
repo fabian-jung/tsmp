@@ -1,5 +1,5 @@
 #include "data/types.hpp"
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <data/prefix_splitter.hpp>
 

@@ -2,7 +2,7 @@
 #include <functional>
 #include <stdexcept>
 #include <tsmp/introspect.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include <variant>
 
 int print_counter = 0;
