@@ -1,10 +1,5 @@
-add_library(llvm_config INTERFACE)
-find_library(libclangcpp "libclang-cpp.so" PATHS "/usr/lib/")
-find_library(libclang "libclang.so" PATHS "/usr/lib/")
-find_library(libllvm "libLLVM.so" PATHS "/usr/lib/")
-target_include_directories(llvm_config INTERFACE /usr/lib/llvm-14/include)
-target_link_libraries(llvm_config INTERFACE ${libclangcpp} ${libclang} ${libllvm})
-target_compile_features(llvm_config INTERFACE cxx_std_17)
+set(LibClangCpp_DIR ${CMAKE_SOURCE_DIR})
+find_package(LibClangCpp CONFIG REQUIRED)
 
 find_package(fmt REQUIRED)
 
@@ -19,7 +14,7 @@ set(introspect_lib_src
 )
 
 add_library(introspect_lib STATIC ${introspect_lib_src})
-target_link_libraries(introspect_lib PUBLIC llvm_config fmt::fmt)
+target_link_libraries(introspect_lib PUBLIC LibClangCpp fmt::fmt)
 target_compile_features(introspect_lib PUBLIC cxx_std_17)
 target_include_directories(introspect_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

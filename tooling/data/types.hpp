@@ -24,18 +24,19 @@ bool operator==(const field_decl_t& lhs, const field_decl_t& rhs);
 bool operator==(const function_decl_t& lhs, const function_decl_t& rhs);
 
 bool operator==(const record_decl_t& lhs, const record_decl_t& rhs);
+
 }
 
 template<>
 struct fmt::formatter<data::field_decl_t> {
     template<typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
+    constexpr auto parse(ParseContext& ctx) const
     {
         return ctx.begin();
     }
 
     template<typename FormatContext>
-    auto format(const data::field_decl_t & field, FormatContext& ctx)
+    auto format(const data::field_decl_t & field, FormatContext& ctx) const
     {
         return fmt::format_to(ctx.out(), "{0}", field.name);
     }
