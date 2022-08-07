@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-XConsumer::XConsumer(clang::ASTContext &context, data::reflection_aggregator_t& aggregator) :
+XConsumer::XConsumer(clang::ASTContext&, data::reflection_aggregator_t& aggregator) :
     m_aggregator(aggregator)
 {}
 

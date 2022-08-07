@@ -17,7 +17,7 @@ TEST_CASE("basic reflection test", "[core][unit]") {
 
 TEST_CASE("empty class reflection test", "[core][unit]") {
     struct foo_empty_t {
-    } foo;
+    };
     const auto fields = tsmp::reflect<foo_empty_t>::fields();
     static_assert(std::tuple_size_v<decltype(fields)> == 0, "Empty types has no fields.");
 }
@@ -50,13 +50,13 @@ TEST_CASE("shared attributes reflection test", "[core][unit]") {
     const auto bar_f = std::get<1>(bar_fields);
     using bar_f_t = typename decltype(bar_f)::value_type;
     static_assert(std::is_same_v<bar_f_t, float>, "value type is not correct");
-    REQUIRE(bar.*(bar_f.ptr) == 3.1415f);
+    REQUIRE(bar.*(bar_f.ptr) == Catch::Approx(3.1415f));
     REQUIRE(bar_f.name == "f");
 }
 
 TEST_CASE("member function reflection test", "[core][unit]") {
     struct foo_t {
-        void print() {};
+        void print() {}
         int add(int a, int b) { 
             return a + b;
         }

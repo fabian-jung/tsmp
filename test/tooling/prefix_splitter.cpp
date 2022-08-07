@@ -9,8 +9,8 @@ using namespace data;
 
 TEST_CASE("prefix_splitter_t simple construction", "[core][unit]") {
     const std::vector<record_decl_t> records {
-        record_decl_t{ "foo_t", { field_decl_t{"i"} } },
-        record_decl_t{ "bar_t", { field_decl_t{"j"} } }
+        record_decl_t{ "foo_t", { field_decl_t{"i"} }, {} },
+        record_decl_t{ "bar_t", { field_decl_t{"j"} }, {} }
     };
     data::prefix_splitter_t splitter{ records };
 
@@ -39,8 +39,8 @@ TEST_CASE("prefix_splitter_t simple construction 2", "[core][unit]") {
 
 TEST_CASE("prefix_splitter_t zero fields construction", "[core][unit]") {
     const std::vector<record_decl_t> records {
-        record_decl_t{ "foo_t", { } },
-        record_decl_t{ "bar_t", { } }
+        record_decl_t{ "foo_t", {}, {} },
+        record_decl_t{ "bar_t", {}, {} }
     };
     data::prefix_splitter_t splitter{ records };
 
@@ -52,8 +52,8 @@ TEST_CASE("prefix_splitter_t zero fields construction", "[core][unit]") {
 
 TEST_CASE("prefix_splitter_t shared  field construction", "[core][unit]") {
     const std::vector<record_decl_t> records {
-        record_decl_t{ "foo_t", { field_decl_t{"i"}, field_decl_t{"j"} } },
-        record_decl_t{ "bar_t", { field_decl_t{"i"}, field_decl_t{"k"} } }
+        record_decl_t{ "foo_t", { field_decl_t{"i"}, field_decl_t{"j"} }, {} },
+        record_decl_t{ "bar_t", { field_decl_t{"i"}, field_decl_t{"k"} }, {} }
     };
     data::prefix_splitter_t splitter{ records };
 
@@ -67,8 +67,8 @@ TEST_CASE("prefix_splitter_t shared  field construction", "[core][unit]") {
 
 TEST_CASE("prefix_splitter_t matching fields construction", "[core][unit]") {
     const std::vector<record_decl_t> records {
-        record_decl_t{ "foo_t", { field_decl_t{"i"}, field_decl_t{"j"} } },
-        record_decl_t{ "bar_t", { field_decl_t{"i"}, field_decl_t{"j"} } }
+        record_decl_t{ "foo_t", { field_decl_t{"i"}, field_decl_t{"j"} }, {} },
+        record_decl_t{ "bar_t", { field_decl_t{"i"}, field_decl_t{"j"} }, {} }
     };
     data::prefix_splitter_t splitter{ records };
 

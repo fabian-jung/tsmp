@@ -19,10 +19,10 @@ std::vector<std::string> getSyntaxOnlyToolArgs(const std::vector<std::string> &e
 
 bool customRunToolOnCodeWithArgs(
     std::unique_ptr<clang::FrontendAction> frontendAction,
-    const llvm::Twine &code,
+    const llvm::Twine&,
     const std::vector<std::string> &args,
     const llvm::Twine &fileName,
-    const clang::tooling::FileContentMappings &virtualMappedFiles
+    const clang::tooling::FileContentMappings&
 ) {
     llvm::SmallString<16> fileNameStorage;
     llvm::StringRef fileNameRef = fileName.toNullTerminatedStringRef(fileNameStorage);

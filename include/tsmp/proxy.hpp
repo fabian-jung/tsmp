@@ -43,8 +43,8 @@ struct IdentityFunctor {
 
 template <class T, class Functor = detail::IdentityFunctor>
 struct value_proxy : public proxy<T, detail::Identity, detail::IdentityAccessor, Functor> {
-    value_proxy(T value, Functor fn = {}) :
-        proxy<T, detail::Identity, detail::IdentityAccessor, Functor>{ std::move(value), detail::IdentityAccessor{}, std::move(fn) }
+    value_proxy(T value, Functor f = {}) :
+        proxy<T, detail::Identity, detail::IdentityAccessor, Functor>{ std::move(value), detail::IdentityAccessor{}, std::move(f) }
     {}
 
     value_proxy(const value_proxy&) = default;
@@ -62,7 +62,7 @@ struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::Dereferenc
     template<class C> 
     requires std::derived_from<C, T>
     polymorphic_value(C value) :
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ new C{std::move(value) } } },
+        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ new C{std::move(value) } }, {}, {} },
         tsmp_copy_helper{ 
             [](const T* b){ 
                 if constexpr(std::is_copy_constructible_v<C>) {
@@ -75,7 +75,7 @@ struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::Dereferenc
     {}
 
     polymorphic_value(const polymorphic_value& cpy) :
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.base.get()) } },
+        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.base.get()) }, {}, {} },
         tsmp_copy_helper{cpy.tsmp_copy_helper}
     {
         if(this->base.get() == nullptr) {
@@ -86,7 +86,7 @@ struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::Dereferenc
     polymorphic_value(polymorphic_value&& ) = default;
     
     polymorphic_value& operator=(const polymorphic_value& cpy) {
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor>::base = detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.base.get()) };
+        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor>::base = detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.base.get()), {}, {} };
         tsmp_copy_helper = cpy.tsmp_copy_helper;
         if(this->base.get() == nullptr) {
             throw std::runtime_error("Trying to copy non copyable value.");
@@ -104,8 +104,8 @@ struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::Dereferenc
 template <class T, class Functor = detail::IdentityFunctor>
 struct unique_proxy : public proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> {
 
-    unique_proxy(T value, Functor fn) :
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor>{ detail::UniquePtr<T>{ new T{ std::move(value) } }, detail::DereferenceAccessor{}, std::move(fn) }
+    unique_proxy(T value, Functor f) :
+        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor>{ detail::UniquePtr<T>{ new T{ std::move(value) } }, detail::DereferenceAccessor{}, std::move(f) }
     {}
 
     unique_proxy(const unique_proxy&) = default;
@@ -120,8 +120,8 @@ struct unique_proxy : public proxy<T, detail::UniquePtr, detail::DereferenceAcce
 template <class T, class Functor = detail::IdentityFunctor>
 struct shared_proxy : public proxy<T, detail::SharedPtr, detail::DereferenceAccessor, Functor> {
 
-    shared_proxy(T value, Functor fn) :
-        proxy<T, detail::SharedPtr, detail::DereferenceAccessor, Functor>{ detail::SharedPtr<T>{ new T{ std::move(value) } }, detail::DereferenceAccessor{}, std::move(fn) }
+    shared_proxy(T value, Functor f) :
+        proxy<T, detail::SharedPtr, detail::DereferenceAccessor, Functor>{ detail::SharedPtr<T>{ new T{ std::move(value) } }, detail::DereferenceAccessor{}, std::move(f) }
     {}
 
     shared_proxy(const shared_proxy&) = default;

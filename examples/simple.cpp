@@ -10,23 +10,22 @@
 template <typename T> 
 concept arithmetic = std::floating_point<T> || std::integral<T>;
 
-std::string to_json(const char* value, const size_t indentation = 0) {
+std::string to_json(const char* value) {
     return "\""+std::string(value)+"\"";
 }
 
-std::string to_json(const arithmetic auto& value, const size_t indentation = 0) {
+std::string to_json(const arithmetic auto& value) {
     return std::to_string(value);
 }
 
-std::string to_json(const std::string& value, const size_t indentation = 0) {
+std::string to_json(const std::string& value) {
     return "\""+value+"\"";
 }
 
-std::string to_json(const auto& value, const size_t indentation = 0) {
-    // using type = std::remove_cv_t<std::remove_reference_t<std::remove_cv_t<decltype(value)>>>;
+std::string to_json(const auto& value) {
     tsmp::introspect introspecter{ value };
     std::string result;
-    const auto fields = introspecter.visit_fields([&](size_t id, std::string_view name, const auto& value){
+    const auto fields = introspecter.visit_fields([&](size_t, std::string_view name, const auto& value){
         return fmt::format("\"{}\":{}", name, to_json(value));
     });
     return fmt::format("{{{}}}",  fmt::join(fields, ", "));
@@ -45,7 +44,7 @@ struct foo_t {
     bar_t bar;
 };
 
-int main(int argc, const char** argv) {
+int main(int, const char**) {
 
 	std::cout << to_json(foo_t{}) << std::endl;
     

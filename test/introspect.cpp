@@ -16,7 +16,7 @@ struct foo_t {
         ++print_counter;
     }
 
-    void print2(int i) const {
+    void print2(int) const {
         ++print2_counter;
     }
 
@@ -61,11 +61,11 @@ TEST_CASE("compile-time get member attribute test", "[unit]") {
     foo_introspecter.get<"i">() = 42;
     REQUIRE(foo.i == 42);
 
-    REQUIRE(foo.f == 0);
+    REQUIRE(foo.f == Catch::Approx(0.0f));
     foo_introspecter.get<1>() = 13.0f;
-    REQUIRE(foo.f == 13.0f);
+    REQUIRE(foo.f == Catch::Approx(13.0f));
     foo_introspecter.get<"f">() = 42.0f;
-    REQUIRE(foo.f == 42.0f);
+    REQUIRE(foo.f == Catch::Approx(42.0f));
 }
 
 TEST_CASE("run-time get member attribute test", "[unit]") {
@@ -76,13 +76,15 @@ TEST_CASE("run-time get member attribute test", "[unit]") {
     REQUIRE(std::get<int>(foo_introspecter.fetch("i")) == 42);
     foo_introspecter.set("i", 43);
     REQUIRE(foo.i == 43);
+    REQUIRE_THROWS(foo_introspecter.set("i", "wrong type"));
     REQUIRE_THROWS(foo_introspecter.set("i", 43.0f));
 
     REQUIRE(std::holds_alternative<float>(foo_introspecter.fetch("f")));
-    REQUIRE(std::get<float>(foo_introspecter.fetch("f")) == 43.0f);
+    REQUIRE(std::get<float>(foo_introspecter.fetch("f")) == Catch::Approx(43.0f));
 
     foo_introspecter.set("f", 43.0f);
-    REQUIRE(foo.f == 43.0f);
+    REQUIRE(foo.f == Catch::Approx(43.0f));
+    REQUIRE_THROWS(foo_introspecter.set("f", "wrong type"));
     REQUIRE_THROWS(foo_introspecter.set("f", 43));
 }
 
@@ -90,20 +92,20 @@ TEST_CASE("run-time visit member attributes test", "[unit]") {
     foo_t foo {42, 43.0f};
     tsmp::introspect foo_introspecter(foo);
 
-    foo_introspecter.visit_fields([](auto id, auto name, auto& field){
+    foo_introspecter.visit_fields([](auto, auto name, auto& field){
         if(name == "i") {
-            REQUIRE(field == 42);
+            REQUIRE(field == Catch::Approx(42));
             REQUIRE(std::is_same_v<decltype(field), int&>);
             field = 4;
         } else if(name == "f") {
-            REQUIRE(field == 43.0f);
+            REQUIRE(field == Catch::Approx(43.0f));
             REQUIRE(std::is_same_v<decltype(field), float&>);
             field = 5.0f;
         }
     });
 
     REQUIRE(foo.i == 4);
-    REQUIRE(foo.f == 5.0f);
+    REQUIRE(foo.f == Catch::Approx(5.0f));
 }
 
 TEST_CASE("member function execution test, no arguments, no result", "[unit]") {

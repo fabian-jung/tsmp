@@ -4,8 +4,8 @@
 using namespace clang;
 
 introspect_visitor_t::introspect_visitor_t(ASTContext *Context, data::reflection_aggregator_t& aggregator) :
-    m_context(Context),
-    m_aggregator(aggregator)
+    m_aggregator(aggregator),
+    m_context(Context)
 {}
 
 bool introspect_visitor_t::shouldVisitTemplateInstantiations() const {

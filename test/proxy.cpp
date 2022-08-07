@@ -34,7 +34,7 @@ struct bar_impl_t : public interface_t {
 };
 
 TEST_CASE("value proxy test", "[unit]") {
-    tsmp::value_proxy foo { foo_t{}, [](auto base, const std::string_view name, auto&&... args){
+    tsmp::value_proxy foo { foo_t{}, [](auto base, const std::string_view, auto&&... args){
         return base(std::forward<decltype(args)>(args)...);
     }};
 
@@ -94,7 +94,7 @@ TEST_CASE("polymorphic_value test", "[unit]") {
 }
 
 TEST_CASE("unique proxy test", "[unit]") {
-    tsmp::unique_proxy foo { foo_t{}, [](auto base, const std::string_view name, auto&&... args){
+    tsmp::unique_proxy foo { foo_t{}, [](auto base, const std::string_view, auto&&... args){
         return base(std::forward<decltype(args)>(args)...);
     }};
 
@@ -115,7 +115,7 @@ TEST_CASE("unique proxy test", "[unit]") {
 
 
 TEST_CASE("shared proxy test", "[unit]") {
-    tsmp::shared_proxy foo { foo_t{}, [](auto base, const std::string_view name, auto&&... args){
+    tsmp::shared_proxy foo { foo_t{}, [](auto base, const std::string_view, auto&&... args){
         return base(std::forward<decltype(args)>(args)...);
     }};
 
