@@ -9,7 +9,7 @@
 
 #include "introspect_visitor.hpp"
 
-std::unique_ptr<clang::ASTConsumer> XFrontendAction::CreateASTConsumer(clang::CompilerInstance &compiler, llvm::StringRef inFile)
+std::unique_ptr<clang::ASTConsumer> XFrontendAction::CreateASTConsumer(clang::CompilerInstance &compiler, llvm::StringRef)
 {
     return std::unique_ptr<clang::ASTConsumer>(new XConsumer(compiler.getASTContext(), m_aggregator));
 }

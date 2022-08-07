@@ -161,7 +161,7 @@ std::string prefix_splitter_t::render() const {
             proxy_functions += fmt::format(
 R"(    template <class... Args>
     constexpr decltype(auto) {0}(Args&&... args) {{
-        auto base_function = [this](auto... args){{ return accessor(base).{0}(std::forward<decltype(args)>(args)...); }};
+        auto base_function = [this](auto... argv){{ return accessor(base).{0}(std::forward<decltype(argv)>(argv)...); }};
         return fn(base_function, "{0}", std::forward<Args>(args)...);
     }}
 )",

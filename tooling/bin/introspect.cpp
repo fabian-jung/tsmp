@@ -5,20 +5,21 @@
 #include "data/aggregator.hpp"
 
 #include <iostream>
+#include <fmt/ostream.h>
+#include <fmt/format.h>
 #include <fstream>
 #include <filesystem>
 #include <vector>
 
 int main(int argc, const char* argv[]) {
     if(argc<3) {
-        std::cerr << "Not enought parameters supplied. Usage is ./introspect_tool <input> [<input args>] <output>";
+        fmt::print(std::cerr, "Not enought parameters supplied. Usage is ./introspect_tool <input> [<input args>] <output>\n");
         return 1;
     }
     std::string output_file(argv[argc-1]);
 
-    std::cout << "running in: " << std::filesystem::current_path() << std::endl;
+    fmt::print("running in: {}\n", std::filesystem::current_path().string());
 
-    auto paramCout = argc - 1;
     for(auto &sourceFile : std::vector<const char*>(argv+1, argv+argc-1))
     {
         if(utils::fileExists(sourceFile) == false)
