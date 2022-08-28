@@ -57,7 +57,7 @@ TEST_CASE("shared attributes reflection test", "[core][unit]") {
 TEST_CASE("member function reflection test", "[core][unit]") {
     struct foo_t {
         void print() {}
-        int add(int a, int b) { 
+        int add(int a, int b) {
             return a + b;
         }
     };
@@ -68,11 +68,38 @@ TEST_CASE("member function reflection test", "[core][unit]") {
 
     constexpr auto functions = tsmp::reflect<foo_t>::functions();
     static_assert(std::tuple_size_v<decltype(functions)> >= 2, "foo_t should have functions");
-    
+
     const auto print = std::get<0>(functions);
     REQUIRE(print.name == "print");
 
     const auto add = std::get<1>(functions);
     REQUIRE(add.name == "add");
     REQUIRE((foo.*(add.ptr))(2, 2) == 4);
+}
+
+TEST_CASE("enum test", "[core][unit]") {
+    enum class foo_t : std::uint32_t {
+        a = 0,
+        b = 1337,
+        c = 42
+    };
+
+    constexpr auto values = tsmp::enum_values<foo_t>;
+    constexpr auto names = tsmp::enum_names<foo_t>;
+    
+    static_assert(values[0] == foo_t::a);
+    static_assert(values[1] == foo_t::b);
+    static_assert(values[2] == foo_t::c);
+
+    static_assert(names[0] == "a");
+    static_assert(names[1] == "b");
+    static_assert(names[2] == "c");
+
+    static_assert(tsmp::enum_from_string<foo_t>("a") == foo_t::a);
+    static_assert(tsmp::enum_from_string<foo_t>("b") == foo_t::b);
+    static_assert(tsmp::enum_from_string<foo_t>("c") == foo_t::c);
+
+    static_assert(tsmp::enum_to_string(foo_t::a) == "a");
+    static_assert(tsmp::enum_to_string(foo_t::b) == "b");
+    static_assert(tsmp::enum_to_string(foo_t::c) == "c");
 }

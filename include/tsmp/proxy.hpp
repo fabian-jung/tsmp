@@ -135,6 +135,6 @@ struct shared_proxy : public proxy<T, detail::SharedPtr, detail::DereferenceAcce
 
 }
 
-#if !defined(INTROSPECT_PASS) && defined(TSMP_REFLECTION_ENABLED)
+#if !defined(TSMP_INTROSPECT_PASS) && defined(TSMP_REFLECTION_ENABLED)
 #include "reflection.hpp"
 #endif

@@ -7,6 +7,7 @@ set(introspect_lib_src
     data/aggregator.cpp
     data/types.cpp
     data/prefix_splitter.cpp
+    data/enum_splitter.cpp
     engine/introspect_visitor.cpp
     engine/utils.cpp
     engine/consumer.cpp

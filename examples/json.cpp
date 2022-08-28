@@ -33,10 +33,14 @@ std::string to_json(const Range& range) {
 
 std::string to_json(const auto& value) {
     tsmp::introspect introspect { value };
-    const auto fields = introspect.visit_fields([](size_t, std::string_view name, const auto& field) {
-        return fmt::format("\"{}\":{}", name, to_json(field));
-    });
-    return fmt::format("{{{}}}", fmt::join(fields, ",")); 
+    if constexpr(introspect.has_fields()) {
+        const auto fields = introspect.visit_fields([](size_t, std::string_view name, const auto& field) {
+            return fmt::format("\"{}\":{}", name, to_json(field));
+        });
+        return fmt::format("{{{}}}", fmt::join(fields, ","));
+    } else {
+        return "{}";
+    }
 }
 
 int main(int, char*[]) {

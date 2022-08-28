@@ -12,9 +12,4 @@ foreach(file ${TESTS})
     catch_discover_tests(${name}_test)
 endforeach()
 
-add_executable(reflect_without_linking_test reflect_without_linking.cpp)
-target_link_libraries(reflect_without_linking_test PRIVATE Catch2::Catch2WithMain tsmp)
-catch_discover_tests(reflect_without_linking_test)
-
-
 add_subdirectory(tooling)

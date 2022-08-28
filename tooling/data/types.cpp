@@ -21,4 +21,11 @@ bool operator==(const record_decl_t& lhs, const record_decl_t& rhs) {
     );
 }
 
+bool operator==(const enum_decl_t& lhs, const enum_decl_t& rhs) {
+    return std::equal(
+        lhs.values.begin(), lhs.values.end(),
+        rhs.values.begin(), rhs.values.end()
+    );
+}
+
 }

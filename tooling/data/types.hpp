@@ -20,10 +20,14 @@ struct record_decl_t {
     std::vector<function_decl_t> functions;
 };
 
+struct enum_decl_t {
+    std::vector<std::string> values;
+};
+
 bool operator==(const field_decl_t& lhs, const field_decl_t& rhs);
 bool operator==(const function_decl_t& lhs, const function_decl_t& rhs);
-
 bool operator==(const record_decl_t& lhs, const record_decl_t& rhs);
+bool operator==(const enum_decl_t& lhs, const enum_decl_t& rhs);
 
 }
 

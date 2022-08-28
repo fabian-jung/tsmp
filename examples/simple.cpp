@@ -25,10 +25,14 @@ std::string to_json(const std::string& value) {
 std::string to_json(const auto& value) {
     tsmp::introspect introspecter{ value };
     std::string result;
-    const auto fields = introspecter.visit_fields([&](size_t, std::string_view name, const auto& value){
-        return fmt::format("\"{}\":{}", name, to_json(value));
-    });
-    return fmt::format("{{{}}}",  fmt::join(fields, ", "));
+    if constexpr(introspecter.has_fields()) {
+        const auto fields = introspecter.visit_fields([&](size_t, std::string_view name, const auto& value) {
+            return fmt::format("\"{}\":{}", name, to_json(value));
+        });
+        return fmt::format("{{{}}}",  fmt::join(fields, ", "));
+    } else {
+        return "{}";
+    }
 }
 
 struct bar_t {
