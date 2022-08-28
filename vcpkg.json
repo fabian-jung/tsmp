@@ -5,6 +5,7 @@
     "version": "0.1",
     "dependencies": [
       "catch2",
-      "fmt"
+      "fmt",
+      "nlohmann-json"
     ]
   }

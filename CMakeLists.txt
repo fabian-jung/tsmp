@@ -13,10 +13,12 @@ include(CTest NO_POLICY_SCOPE)
 include(Catch NO_POLICY_SCOPE)
 include(ParseAndAddCatchTests)
 
+find_package(nlohmann_json REQUIRED)
+
 add_subdirectory(tooling)
 
 add_library(tsmp INTERFACE)
-target_include_directories(tsmp INTERFACE 
+target_include_directories(tsmp INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
