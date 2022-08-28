@@ -23,5 +23,5 @@ namespace utils
     std::vector<std::string> getCompileArgs(const std::vector<clang::tooling::CompileCommand> &compileCommands);
     std::string getSourceCode(const std::string &sourceFile);
 
-    std::string getClangBuiltInIncludePath(const std::string &fullCallPath);
+    std::vector<std::string> getClangBuiltInIncludePath(const std::string &fullCallPath);
 }

@@ -32,13 +32,26 @@ function(enable_reflection target)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/tsmp/${target}
     )
     message(STATUS "Introspect tool used: ${INTROSPECT_TOOL}")
+
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/tsmp/${target}/builtInInclude.path
+        COMMAND ${CMAKE_CXX_COMPILER} -xc++ /dev/null -E -Wp,-v 2>&1 | sed -n "s,^ ,,p" > ${CMAKE_BINARY_DIR}/tsmp/${target}/builtInInclude.path
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        DEPENDS ${target}_header_dir
+        VERBATIM
+    )
+    add_custom_target(
+        ${target}_builtin_includes
+        DEPENDS ${CMAKE_BINARY_DIR}/tsmp/${target}/builtInInclude.path
+    )
+
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/tsmp/${target}/reflection.hpp
         COMMAND ${INTROSPECT_TOOL} ${RELATIVE_SOURCES} ./tsmp/${target}/reflection.hpp 2> ./tsmp/${target}/error.log 1> ./tsmp/${target}/build.log
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS introspect_tool
         DEPENDS ${TARGET_SOURCES}
-        DEPENDS ${target}_header_dir
+        DEPENDS ${target}_builtin_includes
         VERBATIM
     )
     add_custom_target(${target}_header
