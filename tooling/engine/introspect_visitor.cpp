@@ -1,4 +1,6 @@
 #include "introspect_visitor.hpp"
+#include "data/types.hpp"
+#include "clang/AST/Decl.h"
 #include <iostream>
 #include <sstream>
 using namespace clang;
@@ -16,6 +18,17 @@ bool introspect_visitor_t::shouldVisitImplicitCode() const {
     return true;
 }
 
+void reflect_enum(const EnumDecl* decl, data::reflection_aggregator_t& aggregator) {
+
+    llvm::outs() << "enum analysis for" << decl->getDeclName() << "  yields values:\n";
+    data::enum_decl_t enum_decl;
+    for(auto enumValue : decl->enumerators()) {
+        llvm::outs() << "    " << enumValue->getDeclName() << "\n";
+        enum_decl.values.emplace_back(enumValue->getDeclName().getAsString());
+    }
+    aggregator.add_enum_decl(enum_decl);
+}
+
 void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator) {
     if(decl == nullptr) return;
     llvm::outs() << "member analysis for " << decl->getNameAsString() << "\n";
@@ -28,6 +41,9 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
         const auto type = field->getType();
         const auto builtin = type.getTypePtr()->isBuiltinType();
         auto name = field->getNameAsString();
+        if(type->isEnumeralType()) {
+            reflect_enum(dynamic_cast<const EnumDecl*>(type->getAsTagDecl()), aggregator);
+        }
         if(!builtin) {
             reflect_type(type->getAsCXXRecordDecl(), aggregator);
         } else {
@@ -59,7 +75,6 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
 void proxy_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator) {
     reflect_type(decl, aggregator);
 }
-
 
 bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpecializationDecl *Declaration) {
     // llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
@@ -93,6 +108,19 @@ bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpe
         }
     }
 
-    
+    if(Declaration->getDeclName().getAsString() == "enum_value_adapter") {
+        llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
+        const auto args = Declaration->getTemplateArgs().asArray();
+        if(args.size() >= 1) {
+            const auto type = args.front().getAsType();
+            const auto* enumDecl = dynamic_cast<EnumDecl*>(type->getAsTagDecl());
+            if(type->isEnumeralType() && enumDecl != nullptr) {
+                reflect_enum(enumDecl, m_aggregator);
+            } else {
+                std::cerr << "Parameter of enum_value_adapter is not a enumeral type." << std::endl;
+            }
+        }
+    }
+
     return true;
-}       
+}

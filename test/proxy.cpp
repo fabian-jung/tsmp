@@ -71,7 +71,7 @@ TEST_CASE("polymorphic_value test", "[unit]") {
 
     REQUIRE(foo.print() == "foo");
     REQUIRE(bar.print() == "bar");
-   
+    
     SECTION("value can be move constructed") {
         auto foo2 { std::move(foo) };
         REQUIRE(foo2.print() == "foo");

@@ -211,6 +211,11 @@ struct introspect {
         );
     }
 
+    constexpr bool has_fields() const noexcept {
+        constexpr auto fields = reflect<T>::fields();
+        return std::tuple_size_v<decltype(fields)> > 0;
+    }
+
     template <class Visitor>
     constexpr auto visit_fields(Visitor&& visitor) const {
         constexpr bool results_match_void =
@@ -225,13 +230,13 @@ struct introspect {
                                 decltype(decls.name),
                                 decltype(std::declval<T&>().*(decls.ptr))
                             >
-                        > && ...);
+                        > && ... && true);
                 },
                 reflect<T>::fields()
             );
 
         return std::apply(
-            [results_match_void, visitor = std::forward<Visitor>(visitor), this](auto... decls) {
+            [visitor = std::forward<Visitor>(visitor), this](auto... decls) {
                 if constexpr(results_match_void) {
                     (visitor(decls.id, decls.name,  internal.*(decls.ptr)), ...);
                 } else {         

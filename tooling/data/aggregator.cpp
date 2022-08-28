@@ -1,4 +1,5 @@
 #include "aggregator.hpp"
+#include "data/types.hpp"
 #include <algorithm>
 
 namespace data {
@@ -25,6 +26,15 @@ void reflection_aggregator_t::add_proxy_decl(record_decl_t decl) {
         return;
     }
     m_records.emplace_back(std::move(decl));
+}
+
+void reflection_aggregator_t::add_enum_decl(enum_decl_t decl) {
+    const auto pos = std::find(m_enums.begin(), m_enums.end(), decl);
+    if(pos != m_enums.end()) {
+        // duplicate declaration
+        return;
+    }
+    m_enums.emplace_back(std::move(decl));
 }
 
 
