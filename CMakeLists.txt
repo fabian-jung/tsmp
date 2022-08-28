@@ -13,7 +13,8 @@ include(CTest NO_POLICY_SCOPE)
 include(Catch NO_POLICY_SCOPE)
 include(ParseAndAddCatchTests)
 
-find_package(nlohmann_json REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 
 add_subdirectory(tooling)
 
@@ -23,6 +24,10 @@ target_include_directories(tsmp INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 target_compile_features(tsmp INTERFACE cxx_std_20)
+
+add_library(tsmp_json INTERFACE)
+add_library(tsmp::json ALIAS tsmp_json)
+target_link_libraries(tsmp_json INTERFACE fmt::fmt nlohmann_json::nlohmann_json)
 
 add_subdirectory(examples)
 

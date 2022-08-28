@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstring>
 #include <string_view>
 #include <array>
 
@@ -23,6 +24,8 @@ struct string_literal_t : public std::array<char, N> {
     constexpr operator std::string_view() const noexcept{
         return std::string_view(std::array<char, N>::data(), N);
     }
+
+    constexpr auto operator<=>(const string_literal_t&) const noexcept = default;
 };
 
 template <size_t N>

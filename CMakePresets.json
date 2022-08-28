@@ -11,13 +11,16 @@
         "displayName": "Default Config",
         "description": "Build with system packages.",
         "generator": "Ninja",
-        "binaryDir": "${sourceDir}/build"
+        "binaryDir": "${sourceDir}/build",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        }
       },
       {
         "name": "vcpkg",
+        "inherits": "default",
         "displayName": "Vcpkg Config",
         "description": "Fetch Dependencies via Vcpkg.",
-        "generator": "Ninja",
         "binaryDir": "${sourceDir}/build-vcpkg",
         "toolchainFile": "${sourceDir}/vendor/vcpkg/scripts/buildsystems/vcpkg.cmake"
       }

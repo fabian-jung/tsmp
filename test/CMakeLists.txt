@@ -2,12 +2,13 @@ set(TESTS
     ${CMAKE_CURRENT_LIST_DIR}/reflect.cpp
     ${CMAKE_CURRENT_LIST_DIR}/introspect.cpp
     ${CMAKE_CURRENT_LIST_DIR}/proxy.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/json.cpp
 )
 
 foreach(file ${TESTS})
 	get_filename_component(name ${file} NAME_WLE)
     add_executable(${name}_test ${file})
-    target_link_libraries(${name}_test PRIVATE Catch2::Catch2WithMain tsmp)
+    target_link_libraries(${name}_test PRIVATE Catch2::Catch2WithMain tsmp::json)
     enable_reflection(${name}_test)
     catch_discover_tests(${name}_test)
 endforeach()
