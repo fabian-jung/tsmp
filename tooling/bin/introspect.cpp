@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <iterator>
 #include <llvm/Support/CommandLine.h>
 #include <clang/Tooling/CommonOptionsParser.h>
 #include "engine/utils.h"
@@ -9,7 +11,13 @@
 #include <fmt/format.h>
 #include <fstream>
 #include <filesystem>
+#include <sstream>
+#include <string>
 #include <vector>
+
+std::string add_include_flag(std::string path) {
+    return "-I"+path;
+}
 
 int main(int argc, const char* argv[]) {
     if(argc<3) {
@@ -35,18 +43,14 @@ int main(int argc, const char* argv[]) {
             std::cerr << "compilation database not found under " << std::filesystem::current_path() << std::endl;
         }
         auto compileCommands = compilation_database->getCompileCommands(clang::tooling::getAbsolutePath(sourceFile));
+        const auto builtinIncludePath = utils::getClangBuiltInIncludePath(output_file);
 
         std::vector<std::string> compileArgs = utils::getCompileArgs(compileCommands);
         // compileArgs.push_back("-I" + utils::getClangBuiltInIncludePath(argv[0]));
         compileArgs.push_back("-ferror-limit=0");
-        compileArgs.push_back("-DTSMP_INTROSPECT_PASS"); 
-        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/12.1.0/include"); // TODO: Hard coded path to gcc includes       
-        compileArgs.push_back("-I/usr/local/include");
-        compileArgs.push_back("-I/usr/lib/gcc/x86_64-pc-linux-gnu/12.1.0/include-fixed");
-        compileArgs.push_back("-I/usr/include");    
-        
-        // for(auto &s : compileArgs)
-        //     llvm::outs() << s << "\n";
+        compileArgs.push_back("-DTSMP_INTROSPECT_PASS");
+        std::transform(builtinIncludePath.begin(), builtinIncludePath.end(), std::back_inserter(compileArgs), add_include_flag);
+        fmt::print("With args: {}\n", fmt::join(compileArgs, " "));
 
         data::reflection_aggregator_t aggregator;
         auto xfrontendAction = std::make_unique<XFrontendAction>(aggregator);
