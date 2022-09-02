@@ -41,7 +41,6 @@
       {
         "name": "fetch_content-debug",
         "generator": "Ninja",
-        "description": "Fetch Dependencies via cmake's FetchContent.",
         "binaryDir": "${sourceDir}/build-fetch_content",
         "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Debug",

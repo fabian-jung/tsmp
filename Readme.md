@@ -1,6 +1,6 @@
 # Tool supported meta programming
 
-This repo is a prove of concept how a static reflection library could be implemented with C++20 and code generation with the help of libclang and cmake.
+TSMP is a static reflection library that is implemented with C++20 and code generation with the help of libclang and cmake.
 
 The current implementation supports the following example application:
 ```cpp
@@ -63,20 +63,40 @@ int main(int, char*[]) {
 }
 ```
 
-Because as of now there is no support for static reflection in C++ the meta-data from the type system needs to be made accessible to your application. This is done via a helper tool, that will parse your source code and generates a special type trait, that is used by the library. 
+Because as of now there is no support for static reflection in C++, the meta-data from the type system needs to be made accessible to your application. This is done via a helper tool, that will parse your source code and generates a special type trait, that are used by the library. 
 
 This step does not need any user intervention or addition of macros to your source code. The code generator needs to be integrated into the build system, but can be done pretty easy for cmake with the help of the function ```enable_reflection()```.
 
 ```cmake
 add_executable(example)
-add_target_library(example PRIVATE ...)
 enable_reflection(example) # This line will add code generation for this target
 ```
 
 # Dependencies
 
-The ```tsmp::reflect<>``` trait is specialized using concepts. Therefore a c++20 compliant compiler is required. gcc-11 is used in the CI-Pipeline. Additionaly libclang and the llvm runtime needs to be installed. The code generator is implemented with the help of the fmt lib.
-The [ci pipeline](.github/workflows/cmake.yml) shows a complete workflow including setup, build and test execution based on a ubuntu 20.04 image.
+The ```tsmp::reflect<>``` trait is specialized using concepts. Therefore a c++20 compliant compiler is required. gcc-11 is used in the CI-Pipeline. Additionaly libclang and the llvm runtime needs to be installed. The code generator is implemented with the help of the fmt lib. In addition to the reflection tsmp has a json encoder and decoder module. This can be used
+by enabling reflection on your target and linking against tsmp::json. The json module has addition dependencies to libfmt and nlohmann-json.
+The [ci pipeline](.github/workflows/ctest_pipeline.yml) shows a complete workflow including setup, build and test execution based on a ubuntu 20.04 image.
+
+# How to install and use TSMP
+
+## With CMake FetchContents
+
+You can integrate TSMP into your project with the help of the FetchContent function. Below is a listing of the relevant parts of a CMakeLists.txt file.
+```
+include(FetchContent)
+FetchContent_Declare(
+    tsmp
+    GIT_REPOSITORY https://github.com/fabian-jung/tsmp.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(tsmp)
+
+
+add_executable(main main.cpp)
+enable_reflection(main)
+target_link_libraries(main PRIVATE tsmp::json)
+```
 
 # API
 

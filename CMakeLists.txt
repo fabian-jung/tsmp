@@ -40,13 +40,16 @@ add_dependencies(tsmp INTERFACE
     include/tsmp.hpp
 )
 
-add_subdirectory(examples)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    # if CMAKE_CURRENT_SOURCE_DIR != CMAKE_SOURCE_DIR, tsmp has been loaded via add_subdirectory or FetchContent
+    # in this case we do not to pollute the global configuration with the example and test targets.
+    add_subdirectory(examples)
+    add_subdirectory(test)
 
-add_subdirectory(test)
+    install(TARGETS tsmp introspect_tool EXPORT tsmpConfig DESTINATION lib/tsmp)
+    install(EXPORT tsmpConfig NAMESPACE tsmp:: FILE tsmpTargets.cmake DESTINATION lib/cmake/tsmp)
 
-install(TARGETS tsmp introspect_tool EXPORT tsmpConfig DESTINATION lib/tsmp)
-install(EXPORT tsmpConfig NAMESPACE tsmp:: FILE tsmpTargets.cmake DESTINATION lib/cmake/tsmp)
-
-install(TARGETS introspect_tool RUNTIME DESTINATION bin)
-install(FILES cmake/tsmpConfig.cmake DESTINATION lib/cmake/tsmp)
-install(DIRECTORY include/tsmp DESTINATION include FILES_MATCHING PATTERN "*.h*")
+    install(TARGETS introspect_tool RUNTIME DESTINATION bin)
+    install(FILES cmake/tsmpConfig.cmake DESTINATION lib/cmake/tsmp)
+    install(DIRECTORY include/tsmp DESTINATION include FILES_MATCHING PATTERN "*.h*")
+endif()

@@ -87,7 +87,7 @@ TEST_CASE("range json test", "[core][unit]") {
     REQUIRE_THROWS(tsmp::from_json<std::vector<int>>("{\"1\":\"2\"}"));
     REQUIRE_THROWS(tsmp::from_json<std::vector<int>>("1"));
     REQUIRE_THROWS(tsmp::from_json<std::vector<int>>("\"1\""));
-};
+}
 
 TEST_CASE("variant json test", "[core][unit]") {
     using variant = std::variant<int, float, std::string>;
