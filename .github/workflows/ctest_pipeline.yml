@@ -6,12 +6,8 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
-
 jobs:
-  build:
+  unit_tests:
     # The CMake configure and build commands are platform agnostic and should work equally
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
@@ -49,3 +45,66 @@ jobs:
         configurePreset: '${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
         buildPreset: '${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
         testPreset: '${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
+
+  fetch_content_integration:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: install deps
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y software-properties-common 
+        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        sudo apt-get install -y gcc-11 g++-11 clang-14 libclang-cpp14-dev libclang-14-dev ninja-build
+        sudo apt-get install curl zip unzip tar pkg-config python3.10-venv flex bison git
+        
+    - name: Create CMakeLists.txt
+      run: |
+        cat <<EOF > CMakeLists.txt
+        cmake_minimum_required(VERSION 3.23)
+        project(tsmp_application)
+
+        include(FetchContent)
+        FetchContent_Declare(
+            tsmp
+            GIT_REPOSITORY https://github.com/fabian-jung/tsmp.git
+            GIT_TAG ${{ github.head_ref }}
+        )
+        FetchContent_Declare(
+            catch2
+            GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+            GIT_TAG        v3.1.0
+        )
+        FetchContent_MakeAvailable(catch2 tsmp)
+        list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
+        include(CTest NO_POLICY_SCOPE)
+        include(Catch)
+
+        add_executable(main main.cpp)
+        target_link_libraries(main PRIVATE Catch2::Catch2WithMain tsmp::json)
+        enable_reflection(main)
+        catch_discover_tests(main)
+        EOF
+
+    - name: Create Test
+      run: |
+        cat <<EOF > main.cpp
+        #include <catch2/catch_all.hpp>
+        #include <tsmp/json.hpp>
+
+        TEST_CASE("FetchContent integration test", "[unit]") {
+            struct {
+                std::string hello = "world";
+            } hello_world;
+            REQUIRE(tsmp::to_json(hello_world) == R"({"hello":"world"})");
+        }
+        EOF
+
+    - name: Configure
+      run: cmake -B binary_dir -DCMAKE_CXX_COMPILER=g++-11
+     
+    - name: Build
+      run: cmake --build binary_dir
+     
+    - name: Run Test
+      run: cmake --build binary_dir --target test

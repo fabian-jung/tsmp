@@ -23,13 +23,17 @@ macro(LoadDependencies)
             GIT_REPOSITORY https://github.com/nlohmann/json.git
             GIT_TAG        v3.11.2
         )
-        FetchContent_Declare(
-            catch2
-            GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-            GIT_TAG        v3.1.0
-        )
-        FetchContent_MakeAvailable(nlohmann_json catch2 fmt)
-        list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
+        if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+            FetchContent_Declare(
+                tsmpCatch2
+                GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+                GIT_TAG        v3.1.0
+            )
+            FetchContent_MakeAvailable(nlohmann_json tsmpCatch2 fmt)
+            list(APPEND CMAKE_MODULE_PATH "${tsmpCatch2_SOURCE_DIR}/extras")
+        else()
+            FetchContent_MakeAvailable(nlohmann_json fmt)
+        endif()
     else()
         find_package(Catch2 CONFIG REQUIRED)
         find_package(nlohmann_json CONFIG REQUIRED)
