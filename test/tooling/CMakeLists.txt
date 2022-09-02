@@ -1,5 +1,5 @@
 set(TESTS
-    ${CMAKE_CURRENT_LIST_DIR}/prefix_splitter.cpp
+    prefix_splitter.cpp
 )
 
 foreach(file ${TESTS})

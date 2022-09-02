@@ -1,8 +1,8 @@
 set(TESTS
-    ${CMAKE_CURRENT_LIST_DIR}/reflect.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/introspect.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/proxy.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/json.cpp
+    reflect.cpp
+    introspect.cpp
+    proxy.cpp
+    json.cpp
 )
 
 foreach(file ${TESTS})
