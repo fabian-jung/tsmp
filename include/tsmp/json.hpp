@@ -60,7 +60,7 @@ struct immutable_t {
 }
 
 [[nodiscard]] std::string to_json(const Arithmetic auto& number) {
-    return std::to_string(number);
+    return fmt::format("{}", number);
 }
 
 [[nodiscard]] std::string to_json(const Enum auto& e) {

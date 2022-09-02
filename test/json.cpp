@@ -12,8 +12,8 @@ TEST_CASE("arithmetic json test", "[core][unit]") {
     REQUIRE(tsmp::to_json(static_cast<std::uint32_t>(42)) == "42");
     REQUIRE(tsmp::to_json(static_cast<std::int8_t>(42)) == "42");
     REQUIRE(tsmp::to_json(static_cast<std::uint8_t>(42)) == "42");
-    REQUIRE(tsmp::to_json(static_cast<float>(42)) == "42.000000");
-    REQUIRE(tsmp::to_json(static_cast<double>(42)) == "42.000000");
+    REQUIRE(tsmp::to_json(static_cast<float>(42.1337)) == "42.1337");
+    REQUIRE(tsmp::to_json(static_cast<double>(42)) == "42");
 
     REQUIRE(tsmp::from_json<std::uint32_t>("42.0") == 42);
     REQUIRE(tsmp::try_from_json<std::uint32_t>("42").value() == 42);
@@ -93,7 +93,7 @@ TEST_CASE("variant json test", "[core][unit]") {
     using variant = std::variant<int, float, std::string>;
     REQUIRE(tsmp::to_json(variant("test")) == "\"test\"");
     REQUIRE(tsmp::to_json(variant(5)) == "5");
-    REQUIRE(tsmp::to_json(variant(5.0f)) == "5.000000");
+    REQUIRE(tsmp::to_json(variant(5.0f)) == "5");
 
     REQUIRE(tsmp::from_json<variant>("\"test\"") == variant("test"));
     REQUIRE(tsmp::from_json<variant>("5") == variant(5));
