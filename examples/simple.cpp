@@ -11,15 +11,15 @@ template <typename T>
 concept arithmetic = std::floating_point<T> || std::integral<T>;
 
 std::string to_json(const char* value) {
-    return "\""+std::string(value)+"\"";
+    return fmt::format("\"{}\"", value);
 }
 
 std::string to_json(const arithmetic auto& value) {
-    return std::to_string(value);
+    return fmt::format("{}", value);
 }
 
 std::string to_json(const std::string& value) {
-    return "\""+value+"\"";
+    return fmt::format("\"{}\"", value);
 }
 
 std::string to_json(const auto& value) {

@@ -11,7 +11,8 @@ struct string_literal_t : public std::array<char, N> {
 
     constexpr string_literal_t(const char* c_str) noexcept
     {
-        const auto end = std::find(c_str, c_str+N, '\0');
+        const auto end_offset = std::min(N, std::strlen(c_str));
+        const auto end = std::find(c_str, c_str+end_offset, '\0');
         std::copy(c_str, end, std::array<char, N>::begin());
         std::fill(std::array<char, N>::begin()+std::distance(c_str, end), std::array<char, N>::end(), '\0');
     }

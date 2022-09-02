@@ -1,8 +1,3 @@
-set(LibClangCpp_DIR ${CMAKE_SOURCE_DIR})
-find_package(LibClangCpp CONFIG REQUIRED)
-
-find_package(fmt REQUIRED)
-
 set(introspect_lib_src
     data/aggregator.cpp
     data/types.cpp
@@ -21,6 +16,7 @@ target_include_directories(introspect_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(introspect_tool bin/introspect.cpp)
 target_link_libraries(introspect_tool PUBLIC introspect_lib)
+target_compile_options(introspect_tool PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
 
 function(enable_reflection target)
     set(INTROSPECT_TOOL ./tooling/introspect_tool)

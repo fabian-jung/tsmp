@@ -7,45 +7,112 @@
     },
     "configurePresets": [
       {
-        "name": "default",
-        "displayName": "Default Config",
-        "description": "Build with system packages.",
+        "name": "default-debug",
         "generator": "Ninja",
         "binaryDir": "${sourceDir}/build",
         "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Debug"
+          "CMAKE_BUILD_TYPE": "Debug",
+          "DEPENDENCY_LOADING": "System"
         }
       },
       {
-        "name": "vcpkg",
-        "inherits": "default",
-        "displayName": "Vcpkg Config",
-        "description": "Fetch Dependencies via Vcpkg.",
+        "name": "default-release",
+        "inherits": "default-debug",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
+      },
+      {
+        "name": "vcpkg-debug",
+        "generator": "Ninja",
         "binaryDir": "${sourceDir}/build-vcpkg",
-        "toolchainFile": "${sourceDir}/vendor/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug",
+          "DEPENDENCY_LOADING": "Vcpkg"
+        }
+      },
+      {
+        "name": "vcpkg-release",
+        "inherits": "vcpkg-debug",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
+      },
+      {
+        "name": "fetch_content-debug",
+        "generator": "Ninja",
+        "description": "Fetch Dependencies via cmake's FetchContent.",
+        "binaryDir": "${sourceDir}/build-fetch_content",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug",
+          "DEPENDENCY_LOADING": "FetchContent"
+        }
+      },
+      {
+        "name": "fetch_content-release",
+        "inherits": "fetch_content-debug",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
       }
     ],
     "buildPresets": [
       {
-        "name": "all",
-        "configurePreset": "default"
+        "name": "default-debug",
+        "configurePreset": "default-debug"
       },
       {
-        "name": "all-vcpkg",
-        "configurePreset": "vcpkg"
+        "name": "default-release",
+        "configurePreset": "default-release"
+      },
+      {
+        "name": "vcpkg-debug",
+        "configurePreset": "vcpkg-debug"
+      },
+      {
+        "name": "vcpkg-release",
+        "configurePreset": "vcpkg-release"
+      },
+      {
+        "name": "fetch_content-debug",
+        "configurePreset": "fetch_content-debug"
+      },
+      {
+        "name": "fetch_content-release",
+        "configurePreset": "fetch_content-release"
       }
     ],
     "testPresets": [
       {
-        "name": "all",
-        "configurePreset": "default",
+        "name": "default-debug",
+        "configurePreset": "default-debug",
         "output": {"outputOnFailure": true},
         "execution": {"noTestsAction": "error", "stopOnFailure": true}
       },
       {
-        "name": "all-vcpkg",
-        "inherits":"all",
-        "configurePreset": "vcpkg"
+        "name": "default-release",
+        "inherits": "default-debug",
+        "configurePreset": "default-release"
+      },
+      {
+        "name": "vcpkg-debug",
+        "inherits": "default-debug",
+        "configurePreset": "vcpkg-debug"
+      },
+      {
+        "name": "vcpkg-release",
+        "inherits": "vcpkg-debug",
+        "configurePreset": "vcpkg-release"
+      },
+      {
+        "name": "fetch_content-debug",
+        "inherits": "default-debug",
+        "configurePreset": "fetch_content-debug"
+      },
+      {
+        "name": "fetch_content-release",
+        "inherits": "fetch_content-debug",
+        "configurePreset": "fetch_content-release"
       }
     ]
   }
