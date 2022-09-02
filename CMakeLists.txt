@@ -26,10 +26,19 @@ target_include_directories(tsmp INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 target_compile_features(tsmp INTERFACE cxx_std_20)
+add_dependencies(tsmp INTERFACE
+    include/introspect.hpp
+    include/proxy.hpp
+    include/reflect.hpp
+    include/string_literal.hpp
+)
 
 add_library(tsmp_json INTERFACE)
 add_library(tsmp::json ALIAS tsmp_json)
 target_link_libraries(tsmp_json INTERFACE fmt::fmt nlohmann_json::nlohmann_json)
+add_dependencies(tsmp INTERFACE
+    include/tsmp.hpp
+)
 
 add_subdirectory(examples)
 
