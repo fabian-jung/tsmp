@@ -14,10 +14,6 @@ else()
     SET(TSMP_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-braces)
 endif()
 
-message(STATUS catch2:${CMAKE_MODULE_PATH})
-include(CTest NO_POLICY_SCOPE)
-include(Catch)
-
 add_subdirectory(tooling)
 
 add_library(tsmp INTERFACE)
