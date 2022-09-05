@@ -68,7 +68,7 @@ jobs:
         FetchContent_Declare(
             tsmp
             GIT_REPOSITORY https://github.com/fabian-jung/tsmp.git
-            GIT_TAG ${{ github.head_ref }}
+            GIT_TAG $GITHUB_HEAD_REF
         )
         FetchContent_Declare(
             catch2
