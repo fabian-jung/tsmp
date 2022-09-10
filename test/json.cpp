@@ -106,6 +106,18 @@ TEST_CASE("variant json test", "[core][unit]") {
 
     REQUIRE_THROWS(tsmp::from_json<variant>("{}"));
     REQUIRE_THROWS(tsmp::from_json<variant>("[5]"));
+
+    struct variant_test_specific_struct {
+        int unique_member;
+        auto operator<=>(const variant_test_specific_struct&) const noexcept = default;
+    };
+
+    using variant_t = std::variant<tsmp::immutable_t<42>, std::string, variant_test_specific_struct>;
+    const auto variant_struct = tsmp::from_json<variant_t>("{\"unique_member\":42}");
+    REQUIRE(std::get<variant_test_specific_struct>(variant_struct) == variant_test_specific_struct{42});
+
+    const auto variant_immutable = tsmp::from_json<variant_t>("42");
+    REQUIRE(std::get<tsmp::immutable_t<42>>(variant_immutable) == 42);
 }
 
 TEST_CASE("struct json test", "[core][unit]") {
