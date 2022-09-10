@@ -30,11 +30,12 @@ int main(int argc, const char* argv[]) {
 
     for(auto &sourceFile : std::vector<const char*>(argv+1, argv+argc-1))
     {
-        if(utils::fileExists(sourceFile) == false)
+        if(!utils::fileExists(sourceFile))
         {
             llvm::errs() << "File: " << sourceFile << " does not exist!\n";
             return -1;
         }
+        std::cout << "Analysing AST of " << sourceFile << std::endl;
 
         auto sourcetxt = utils::getSourceCode(sourceFile);
         std::string error;
