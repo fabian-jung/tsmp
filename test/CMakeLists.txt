@@ -15,4 +15,13 @@ foreach(file ${TESTS})
     target_compile_options(${name}_test PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
 endforeach()
 
+add_executable(reflection_with_linking_test
+    reflection_with_linking.cpp
+    reflection_with_linking_impl.cpp
+)
+target_link_libraries(reflection_with_linking_test PRIVATE Catch2::Catch2WithMain tsmp::json)
+catch_discover_tests(reflection_with_linking_test)
+target_compile_options(reflection_with_linking_test PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
+enable_reflection(reflection_with_linking_test)
+
 add_subdirectory(tooling)
