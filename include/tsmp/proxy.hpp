@@ -10,6 +10,24 @@ namespace tsmp {
 template <class T, template<class> class Container, class Accessor, class Functor>
 struct proxy;
 
+}
+
+#if !defined(TSMP_INTROSPECT_PASS) && defined(TSMP_REFLECTION_ENABLED)
+#include "reflection.hpp"
+#else 
+namespace tsmp {
+
+template <class T, template<class> class Container, class Accessor, class Functor>
+struct proxy : public T {
+    template <class... Args>
+    proxy(Args&&...) {}
+};
+
+}
+#endif
+
+namespace tsmp {
+
 namespace detail {
 
 template <class T>
@@ -134,7 +152,3 @@ struct shared_proxy : public proxy<T, detail::SharedPtr, detail::DereferenceAcce
 };
 
 }
-
-#if !defined(TSMP_INTROSPECT_PASS) && defined(TSMP_REFLECTION_ENABLED)
-#include "reflection.hpp"
-#endif

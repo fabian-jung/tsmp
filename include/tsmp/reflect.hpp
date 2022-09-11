@@ -2,7 +2,8 @@
 #include <cstdint>
 #include <string_view>
 #include <tuple>
-#include <ranges>
+#include <range/v3/algorithm/transform.hpp>
+#include <range/v3/algorithm/find.hpp>
 
 namespace tsmp {
 
@@ -63,14 +64,24 @@ struct enum_value_adapter {
 #endif
 
 template <Enum E>
-constexpr auto enum_values = std::ranges::views::transform(enum_value_adapter<E>::values, enum_entry_description_t<E>::get_value);
+constexpr auto enum_values = [](){
+    constexpr auto enum_fields = enum_value_adapter<E>::values;
+    std::array<E, enum_fields.size()> result;
+    ranges::transform(enum_fields, result.begin(), enum_entry_description_t<E>::get_value);
+    return result;
+}();
 
 template <Enum E>
-constexpr auto enum_names = std::ranges::views::transform(enum_value_adapter<E>::values, enum_entry_description_t<E>::get_name);
+constexpr auto enum_names = [](){
+    constexpr auto enum_fields = enum_value_adapter<E>::values;
+    std::array<std::string_view, enum_fields.size()> result;
+    ranges::transform(enum_fields, result.begin(), enum_entry_description_t<E>::get_name);
+    return result;
+}();
 
 template <Enum E>
 constexpr std::string_view enum_to_string(E value) {
-    const auto it = std::ranges::find(enum_value_adapter<E>::values, value, enum_entry_description_t<E>::get_value);
+    const auto it = ranges::find(enum_value_adapter<E>::values, value, enum_entry_description_t<E>::get_value);
     if(it == enum_value_adapter<E>::values.end()) {
         throw std::runtime_error("Value is not part of enumeration.");
     }
@@ -79,7 +90,7 @@ constexpr std::string_view enum_to_string(E value) {
 
 template <Enum E>
 constexpr E enum_from_string(std::string_view name) {
-    const auto it = std::ranges::find(enum_value_adapter<E>::values, name, enum_entry_description_t<E>::get_name);
+    const auto it = ranges::find(enum_value_adapter<E>::values, name, enum_entry_description_t<E>::get_name);
     if(it == enum_value_adapter<E>::values.end()) {
         throw std::runtime_error("Name is not part of enumeration.");
     }

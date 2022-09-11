@@ -7,49 +7,94 @@
     },
     "configurePresets": [
       {
-        "name": "default-debug",
+        "name": "clang-default-debug",
         "generator": "Ninja",
         "binaryDir": "${sourceDir}/build",
         "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Debug",
-          "DEPENDENCY_LOADING": "System"
+          "DEPENDENCY_LOADING": "System",
+          "CMAKE_CXX_COMPILER": "clang++"
         }
       },
       {
-        "name": "default-release",
-        "inherits": "default-debug",
+        "name": "gcc-default-debug",
+        "inherits": "clang-default-debug",
+        "cacheVariables": {
+          "CMAKE_CXX_COMPILER": "g++"
+        }
+      },
+      {
+        "name": "clang-default-release",
+        "inherits": "clang-default-debug",
         "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Release"
         }
       },
       {
-        "name": "vcpkg-debug",
+        "name": "gcc-default-release",
+        "inherits": "gcc-default-debug",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
+      },
+      {
+        "name": "clang-vcpkg-debug",
         "generator": "Ninja",
         "binaryDir": "${sourceDir}/build-vcpkg",
         "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Debug",
-          "DEPENDENCY_LOADING": "Vcpkg"
+          "DEPENDENCY_LOADING": "Vcpkg",
+          "CMAKE_CXX_COMPILER": "clang++"
         }
       },
       {
-        "name": "vcpkg-release",
-        "inherits": "vcpkg-debug",
+        "name": "gcc-vcpkg-debug",
+        "inherits": "clang-vcpkg-debug",
+        "cacheVariables": {
+          "CMAKE_CXX_COMPILER": "g++"
+        }
+      },
+      {
+        "name": "clang-vcpkg-release",
+        "inherits": "clang-vcpkg-debug",
         "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Release"
         }
       },
       {
-        "name": "fetch_content-debug",
+        "name": "gcc-vcpkg-release",
+        "inherits": "gcc-vcpkg-debug",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
+      },
+      {
+        "name": "clang-fetch_content-debug",
         "generator": "Ninja",
         "binaryDir": "${sourceDir}/build-fetch_content",
         "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Debug",
-          "DEPENDENCY_LOADING": "FetchContent"
+          "DEPENDENCY_LOADING": "FetchContent",
+          "CMAKE_CXX_COMPILER": "clang++"
         }
       },
       {
-        "name": "fetch_content-release",
-        "inherits": "fetch_content-debug",
+        "name": "gcc-fetch_content-debug",
+        "inherits": "clang-fetch_content-debug",
+        "cacheVariables": {
+          "CMAKE_CXX_COMPILER": "g++"
+        }
+      },
+      {
+        "name": "clang-fetch_content-release",
+        "inherits": "clang-fetch_content-debug",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
+      },
+      {
+        "name": "gcc-fetch_content-release",
+        "inherits": "gcc-fetch_content-debug",
         "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Release"
         }
@@ -57,61 +102,116 @@
     ],
     "buildPresets": [
       {
-        "name": "default-debug",
-        "configurePreset": "default-debug"
+        "name": "clang-default-debug",
+        "configurePreset": "clang-default-debug"
       },
       {
-        "name": "default-release",
-        "configurePreset": "default-release"
+        "name": "gcc-default-debug",
+        "configurePreset": "gcc-default-debug"
       },
       {
-        "name": "vcpkg-debug",
-        "configurePreset": "vcpkg-debug"
+        "name": "clang-default-release",
+        "configurePreset": "clang-default-release"
       },
       {
-        "name": "vcpkg-release",
-        "configurePreset": "vcpkg-release"
+        "name": "gcc-default-release",
+        "configurePreset": "gcc-default-release"
       },
       {
-        "name": "fetch_content-debug",
-        "configurePreset": "fetch_content-debug"
+        "name": "clang-vcpkg-debug",
+        "configurePreset": "clang-vcpkg-debug"
       },
       {
-        "name": "fetch_content-release",
-        "configurePreset": "fetch_content-release"
+        "name": "gcc-vcpkg-debug",
+        "configurePreset": "gcc-vcpkg-debug"
+      },
+      {
+        "name": "clang-vcpkg-release",
+        "configurePreset": "clang-vcpkg-release"
+      },
+      {
+        "name": "gcc-vcpkg-release",
+        "configurePreset": "gcc-vcpkg-release"
+      },
+      {
+        "name": "clang-fetch_content-debug",
+        "configurePreset": "clang-fetch_content-debug"
+      },
+      {
+        "name": "gcc-fetch_content-debug",
+        "configurePreset": "gcc-fetch_content-debug"
+      },
+      {
+        "name": "clang-fetch_content-release",
+        "configurePreset": "clang-fetch_content-release"
+      },
+      {
+        "name": "gcc-fetch_content-release",
+        "configurePreset": "gcc-fetch_content-release"
       }
     ],
     "testPresets": [
       {
-        "name": "default-debug",
-        "configurePreset": "default-debug",
+        "name": "clang-default-debug",
+        "configurePreset": "clang-default-debug",
         "output": {"outputOnFailure": true},
         "execution": {"noTestsAction": "error", "stopOnFailure": true}
       },
       {
-        "name": "default-release",
-        "inherits": "default-debug",
-        "configurePreset": "default-release"
+        "name": "gcc-default-debug",
+        "configurePreset": "gcc-default-debug",
+        "output": {"outputOnFailure": true},
+        "execution": {"noTestsAction": "error", "stopOnFailure": true}
       },
       {
-        "name": "vcpkg-debug",
-        "inherits": "default-debug",
-        "configurePreset": "vcpkg-debug"
+        "name": "clang-default-release",
+        "inherits": "clang-default-debug",
+        "configurePreset": "clang-default-release"
       },
       {
-        "name": "vcpkg-release",
-        "inherits": "vcpkg-debug",
-        "configurePreset": "vcpkg-release"
+        "name": "gcc-default-release",
+        "inherits": "gcc-default-debug",
+        "configurePreset": "gcc-default-release"
       },
       {
-        "name": "fetch_content-debug",
-        "inherits": "default-debug",
-        "configurePreset": "fetch_content-debug"
+        "name": "clang-vcpkg-debug",
+        "inherits": "clang-default-debug",
+        "configurePreset": "clang-vcpkg-debug"
       },
       {
-        "name": "fetch_content-release",
-        "inherits": "fetch_content-debug",
-        "configurePreset": "fetch_content-release"
+        "name": "gcc-vcpkg-debug",
+        "inherits": "gcc-default-debug",
+        "configurePreset": "gcc-vcpkg-debug"
+      },
+      {
+        "name": "clang-vcpkg-release",
+        "inherits": "clang-vcpkg-debug",
+        "configurePreset": "clang-vcpkg-release"
+      },
+      {
+        "name": "gcc-vcpkg-release",
+        "inherits": "gcc-vcpkg-debug",
+        "configurePreset": "gcc-vcpkg-release"
+      },
+      {
+        "name": "clang-fetch_content-debug",
+        "inherits": "clang-default-debug",
+        "configurePreset": "clang-fetch_content-debug"
+      },
+      {
+        "name": "gcc-fetch_content-debug",
+        "inherits": "gcc-default-debug",
+        "configurePreset": "gcc-fetch_content-debug"
+      },
+      {
+        "name": "clang-fetch_content-release",
+        "inherits": "clang-fetch_content-debug",
+        "configurePreset": "clang-fetch_content-release"
+      },
+      {
+        "name": "gcc-fetch_content-release",
+        "inherits": "gcc-fetch_content-debug",
+        "configurePreset": "gcc-fetch_content-release"
       }
     ]
   }

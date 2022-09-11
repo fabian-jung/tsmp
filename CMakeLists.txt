@@ -28,10 +28,11 @@ add_dependencies(tsmp INTERFACE
     include/reflect.hpp
     include/string_literal.hpp
 )
+target_link_libraries(tsmp INTERFACE range-v3::range-v3)
 
 add_library(tsmp_json INTERFACE)
 add_library(tsmp::json ALIAS tsmp_json)
-target_link_libraries(tsmp_json INTERFACE fmt::fmt nlohmann_json::nlohmann_json)
+target_link_libraries(tsmp_json INTERFACE fmt::fmt nlohmann_json::nlohmann_json range-v3::range-v3)
 add_dependencies(tsmp INTERFACE
     include/tsmp.hpp
 )

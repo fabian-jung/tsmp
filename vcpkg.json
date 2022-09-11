@@ -6,6 +6,7 @@
     "dependencies": [
       "catch2",
       "fmt",
-      "nlohmann-json"
+      "nlohmann-json",
+      "range-v3"
     ]
   }

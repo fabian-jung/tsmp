@@ -4,7 +4,7 @@ target_compile_options(simple PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
 enable_reflection(simple)
 
 add_executable(json json.cpp)
-target_link_libraries(json PUBLIC fmt::fmt)
+target_link_libraries(json PUBLIC fmt::fmt range-v3::range-v3)
 target_compile_options(json PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
 enable_reflection(json)
 

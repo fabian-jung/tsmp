@@ -6,11 +6,16 @@
 #include <fmt/format.h>
 #include <stdexcept>
 #include <functional>
+#include <iterator>
 #include <optional>
 #include <tsmp/introspect.hpp>
 
 #include <concepts>
-#include <ranges>
+#include <range/v3/view/transform.hpp>
+#include <range/v3/algorithm/transform.hpp>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/subrange.hpp>
+
 #include <type_traits>
 #include <stdexcept>
 
@@ -81,7 +86,7 @@ template <std::ranges::input_range Range>
 [[nodiscard]] std::string to_json(const Range& range) {
     using value_type = typename Range::value_type;
     using signature_t = std::string(*)(const value_type&);
-    const auto elements = std::ranges::transform_view(range, static_cast<signature_t>(to_json));
+    const auto elements = ranges::transform_view(range, static_cast<signature_t>(to_json));
     return fmt::format("[{}]", fmt::join(elements, ","));
 }
 
@@ -126,7 +131,7 @@ struct throw_handler_t {
 template <class T>
 struct nullopt_handler_t {
     using value_type = std::optional<T>;
-    constexpr std::optional<T> operator()(std::string) {
+    std::optional<T> operator()(std::string) {
         return std::nullopt;
     }
 };
@@ -180,9 +185,7 @@ struct from_json_t<std::array<T, N>, ErrorHandler> {
         if(json.size() != result.size()) {
             return ErrorHandler<std::array<T, N>>{} (fmt::format("{} is not of requested size {}", json.dump(), N));
         }
-        std::vector<nlohmann::json> intermediate(json.begin(), json.end());
-        auto view = std::ranges::transform_view(intermediate, from_json_t<T, ErrorHandler>{});
-        std::copy(view.begin(), view.end(), result.begin());
+        ranges::transform(json, result.begin(), from_json_t<T, ErrorHandler>{});
         return result;
     }
 };
@@ -213,7 +216,7 @@ struct from_json_t<immutable_t<value>, ErrorHandler> {
     }
 };
 
-template <std::ranges::range Range, template <class> class ErrorHandler>
+template <ranges::range Range, template <class> class ErrorHandler>
 struct from_json_t<Range, ErrorHandler> {
     using value_type = typename ErrorHandler<Range>::value_type;
     [[nodiscard]] value_type operator()(const nlohmann::json& json) {
@@ -221,9 +224,9 @@ struct from_json_t<Range, ErrorHandler> {
             return ErrorHandler<Range>{}(fmt::format("{} is not an array", json.dump()));
         }
         using range_value_type = typename Range::value_type;
-        std::vector<nlohmann::json> intermediate(json.begin(), json.end());
-        auto view = std::ranges::transform_view(intermediate, from_json_t<range_value_type, ErrorHandler>{});
-        return Range{view.begin(), view.end()};
+        std::vector<range_value_type> buffer;
+        ranges::transform(json, std::back_insert_iterator(buffer), from_json_t<range_value_type, throw_handler_t>{});
+        return Range{ buffer.begin(), buffer.end() };
     }
 };
 
