@@ -3,7 +3,7 @@
 #include <tsmp/introspect.hpp>
 
 #include <concepts>
-#include <ranges>
+#include <range/v3/view/transform.hpp>
 #include <type_traits>
 
 template <class T>
@@ -27,7 +27,7 @@ template <std::ranges::input_range Range>
 std::string to_json(const Range& range) {
     using value_type = typename Range::value_type;
     using signature_t = std::string(*)(const value_type&);
-    const auto elements = std::ranges::transform_view(range, static_cast<signature_t>(to_json));
+    const auto elements = ranges::transform_view(range, static_cast<signature_t>(to_json));
     return fmt::format("[{}]", fmt::join(elements, ","));
 }
 

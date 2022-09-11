@@ -18,7 +18,7 @@ struct foo_t {
 struct interface_t {
     virtual ~interface_t() = default;
 
-    virtual std::string print() const = 0;
+    virtual std::string print() const { return ""; } /*= 0*/;
 };
 
 struct foo_impl_t : public interface_t {
@@ -112,7 +112,6 @@ TEST_CASE("unique proxy test", "[unit]") {
         REQUIRE(foo2.a == 1);
     }
 }
-
 
 TEST_CASE("shared proxy test", "[unit]") {
     tsmp::shared_proxy foo { foo_t{}, [](auto base, const std::string_view, auto&&... args){

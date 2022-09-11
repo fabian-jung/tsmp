@@ -15,9 +15,8 @@ struct interface_t {
     virtual ~interface_t() = default;
     interface_t(const interface_t&) = default;
 
-    virtual void print() const = 0;
+    virtual void print() const {} /* = 0 */;
 };
-
 
 struct foo_impl : interface_t{
     virtual void print() const override {
@@ -50,9 +49,9 @@ int main(int, char*[]) {
     tsmp::polymorphic_value<interface_t> pvalue1 { foo_impl{} };
     pvalue1.print();
 
-    auto cpy_foo = pvalue1;
-    cpy_foo.print();
+    // auto cpy_foo = pvalue1;
+    // cpy_foo.print();
 
-    tsmp::polymorphic_value<interface_t> pvalue2 { bar_impl{} };
-    pvalue2.print();
+//     tsmp::polymorphic_value<interface_t> pvalue2 { bar_impl{} };
+//     pvalue2.print();
 }

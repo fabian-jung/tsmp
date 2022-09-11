@@ -12,7 +12,7 @@ TEST_CASE("basic reflection test", "[core][unit]") {
     using value_type = typename decltype(first)::value_type;
     static_assert(std::is_same_v<value_type, int>, "value type is not correct");
     REQUIRE(foo.*(first.ptr) == 42);
-    REQUIRE(first.name == "i");
+    REQUIRE(std::string(first.name) == "i");
 }
 
 TEST_CASE("empty class reflection test", "[core][unit]") {
@@ -39,19 +39,19 @@ TEST_CASE("shared attributes reflection test", "[core][unit]") {
     using foo_i_t = typename decltype(foo_i)::value_type;
     static_assert(std::is_same_v<foo_i_t, int>, "value type is not correct");
     REQUIRE(foo.*(foo_i.ptr) == 42);
-    REQUIRE(foo_i.name == "i");
+    REQUIRE(std::string(foo_i.name) == "i");
 
     const auto bar_i = std::get<0>(bar_fields);
     using bar_i_t = typename decltype(bar_i)::value_type;
     static_assert(std::is_same_v<bar_i_t, int>, "value type is not correct");
     REQUIRE(bar.*(bar_i.ptr) == 42);
-    REQUIRE(bar_i.name == "i");
+    REQUIRE(std::string(bar_i.name) == "i");
 
     const auto bar_f = std::get<1>(bar_fields);
     using bar_f_t = typename decltype(bar_f)::value_type;
     static_assert(std::is_same_v<bar_f_t, float>, "value type is not correct");
     REQUIRE(bar.*(bar_f.ptr) == Catch::Approx(3.1415f));
-    REQUIRE(bar_f.name == "f");
+    REQUIRE(std::string(bar_f.name) == "f");
 }
 
 TEST_CASE("member function reflection test", "[core][unit]") {
@@ -70,10 +70,10 @@ TEST_CASE("member function reflection test", "[core][unit]") {
     static_assert(std::tuple_size_v<decltype(functions)> >= 2, "foo_t should have functions");
 
     const auto print = std::get<0>(functions);
-    REQUIRE(print.name == "print");
+    REQUIRE(std::string(print.name) == "print");
 
     const auto add = std::get<1>(functions);
-    REQUIRE(add.name == "add");
+    REQUIRE(std::string(add.name) == "add");
     REQUIRE((foo.*(add.ptr))(2, 2) == 4);
 }
 

@@ -3,6 +3,7 @@ set(TESTS
     introspect.cpp
     proxy.cpp
     json.cpp
+    string_literal.cpp
 )
 
 foreach(file ${TESTS})

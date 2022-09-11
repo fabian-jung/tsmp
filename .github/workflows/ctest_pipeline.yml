@@ -16,6 +16,7 @@ jobs:
 
     strategy:
       matrix:
+        compiler: [clang, gcc]
         dependency_loader: [fetch_content, vcpkg]
         build_type: [debug, release]
 
@@ -42,9 +43,9 @@ jobs:
       uses: lukka/run-cmake@v10
       with:
         cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-        configurePreset: '${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
-        buildPreset: '${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
-        testPreset: '${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
+        configurePreset: '${{ matrix.compiler }}-${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
+        buildPreset: '${{ matrix.compiler }}-${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
+        testPreset: '${{ matrix.compiler }}-${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
 
   fetch_content_integration:
     runs-on: ubuntu-22.04
