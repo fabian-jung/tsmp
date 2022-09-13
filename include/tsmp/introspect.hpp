@@ -104,17 +104,17 @@ namespace tsmp {
     struct introspect {
         T &internal;
         static constexpr bool is_pointer = std::is_pointer_v<T>;
-
-        constexpr introspect(T &lvalue) noexcept:
-                internal{lvalue} {}
-
         using internal_type = typename std::remove_pointer<T>::type;
 
+        constexpr introspect(T& lvalue) noexcept:
+                internal{ lvalue }
+        {}
+
         static constexpr auto field_id(const std::string_view name) {
-            return std::apply([name](auto... decls) {
+            return std::apply([name](auto... decls){
                                   size_t id = 0;
                                   bool found = (((decls.name == name) ? true : (++id, false)) || ...);
-                                  if (!found) {
+                                  if(!found) {
                                       throw std::runtime_error("field name does not exist");
                                   }
                                   return id;
@@ -125,10 +125,10 @@ namespace tsmp {
 
         static constexpr auto function_id(const std::string_view name) {
             return std::apply(
-                    [&](auto... decls) {
+                    [&](auto... decls){
                         size_t id = 0;
                         bool found = (((decls.name == name) ? true : (++id, false)) || ...);
-                        if (!found) {
+                        if(!found) {
                             throw std::runtime_error("function name does not exist");
                         }
                         return id;
@@ -137,29 +137,30 @@ namespace tsmp {
             );
         }
 
-        template<size_t id, class... Args>
-        constexpr decltype(auto) call(Args &&... args) const {
+        template <size_t id, class... Args>
+        constexpr decltype(auto) call(Args&&... args) const {
             constexpr auto ptr = std::get<id>(reflect<internal_type>::functions()).ptr;
             return (internal.*ptr)(std::forward<Args>(args)...);
         }
 
-        template<string_literal_t name, class... Args>
-        constexpr decltype(auto) call(Args &&... args) const {
+        template <string_literal_t name, class... Args>
+        constexpr decltype(auto) call(Args&&... args) const {
             constexpr auto id = function_id(name);
             constexpr auto ptr = std::get<id>(reflect<internal_type>::functions()).ptr;
             return (internal.*ptr)(std::forward<Args>(args)...);
         }
 
-        template<class... Args>
-        constexpr decltype(auto) invoke(const size_t id, Args &&... args) {
+        template <class... Args>
+        constexpr decltype(auto) invoke(const size_t id, Args&&... args) {
             constexpr auto functions = std::apply(
-                    [](auto... elements) {
-                        return std::array<std::variant<decltype(elements.ptr)...>, sizeof...(elements)>{{elements.ptr...}};
+                    [](auto... elements){
+                        return std::array<std::variant<decltype(elements.ptr)...>, sizeof...(elements)> {{ elements.ptr... }};
                     },
                     reflect<internal_type>::functions()
             );
             auto variant = functions[id];
             using result_t = detail::result_variant_t<decltype(reflect<internal_type>::functions())>;
+
             if constexpr (!is_pointer) {
                 return std::visit(
                         [&](auto &&ptr) -> result_t {
@@ -176,7 +177,9 @@ namespace tsmp {
                         },
                         variant
                 );
-            } else {
+            }
+            else
+            {
                 return std::visit(
                         [&](auto &&ptr) -> result_t {
                             if constexpr (std::is_invocable_v<decltype(ptr), T, Args...>) {
@@ -195,20 +198,20 @@ namespace tsmp {
             }
         }
 
-        template<class... Args>
-        constexpr decltype(auto) invoke(const std::string_view name, Args &&... args) {
+        template <class... Args>
+        constexpr decltype(auto) invoke(const std::string_view name, Args&&... args) {
             const auto id = function_id(name);
             return invoke(id, std::forward<Args>(args)...);
         }
 
-        template<size_t id>
-        constexpr auto &get() const {
+        template <size_t id>
+        constexpr auto& get() const {
             constexpr auto ptr = std::get<id>(reflect<internal_type>::fields()).ptr;
             return internal.*ptr;
         }
 
-        template<string_literal_t name>
-        constexpr auto &get() const {
+        template <string_literal_t name>
+        constexpr auto& get() const {
             constexpr auto id = field_id(name);
             return get<id>();
         }
@@ -217,14 +220,12 @@ namespace tsmp {
             return detail::fetch_impl(internal, name, reflect<internal_type>::fields());
         }
 
-        template<class Arg>
-        constexpr auto set(const std::string_view name, Arg &&arg) {
+        template <class Arg>
+        constexpr auto set(const std::string_view name, Arg&& arg) {
             std::apply(
-                    [this, name, &arg](auto... decls) {
-                        bool found = ((decls.name == name ? (detail::try_set(internal, decls.ptr,
-                                                                             std::forward<Arg>(arg)), true)
-                                                          : false) || ...);
-                        if (!found) {
+                    [this, name, &arg](auto... decls){
+                        bool found = ((decls.name == name ? (detail::try_set(internal, decls.ptr, std::forward<Arg>(arg)), true) : false) || ...);
+                        if(!found) {
                             throw std::runtime_error("field name does not exist");
                         }
                     },
@@ -237,11 +238,11 @@ namespace tsmp {
             return std::tuple_size_v<decltype(fields)> > 0;
         }
 
-        template<class Visitor>
-        constexpr auto visit_fields(Visitor &&visitor) const {
+        template <class Visitor>
+        constexpr auto visit_fields(Visitor&& visitor) const {
             constexpr bool results_match_void =
                     std::apply(
-                            [](auto... decls) {
+                            [](auto... decls){
                                 return (
                                         std::is_same_v<
                                                 void,
@@ -249,12 +250,13 @@ namespace tsmp {
                                                         Visitor,
                                                         decltype(decls.id),
                                                         decltype(decls.name),
-                                                        decltype(std::declval<internal_type &>().*(decls.ptr))
+                                                        decltype(std::declval<T&>().*(decls.ptr))
                                                 >
                                         > && ... && true);
                             },
                             reflect<internal_type>::fields()
                     );
+
             if constexpr (!is_pointer) {
                 return std::apply(
                         [visitor = std::forward<Visitor>(visitor), this](auto... decls) {
@@ -268,10 +270,11 @@ namespace tsmp {
                         },
                         reflect<internal_type>::fields()
                 );
-            } else {
+            }
+            else
+            {
                 return std::apply(
-                        [results_match_void, visitor = std::forward<Visitor>(visitor), this](auto... decls) {
-
+                        [visitor = std::forward<Visitor>(visitor), this](auto... decls) {
                             if constexpr (results_match_void) {
                                 (visitor(decls.id, decls.name, *internal.*(decls.ptr)), ...);
                             } else {
@@ -285,4 +288,5 @@ namespace tsmp {
             }
         }
     };
+
 }
