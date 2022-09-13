@@ -3,6 +3,8 @@
 #include "clang/AST/Decl.h"
 #include <iostream>
 #include <sstream>
+#include <unordered_set>
+
 using namespace clang;
 
 introspect_visitor_t::introspect_visitor_t(ASTContext *Context, data::reflection_aggregator_t& aggregator) :
@@ -29,8 +31,13 @@ void reflect_enum(const EnumDecl* decl, data::reflection_aggregator_t& aggregato
     aggregator.add_enum_decl(enum_decl);
 }
 
-void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator) {
+void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator, std::unordered_set<const CXXRecordDecl*> recursion_guard) {
     if(decl == nullptr) return;
+    if(recursion_guard.find(decl) != recursion_guard.end())
+        return;
+
+    recursion_guard.insert(decl);
+
     llvm::outs() << "member analysis for " << decl->getNameAsString() << "\n";
     data::record_decl_t record_decl;
     record_decl.name = decl->getNameAsString();
@@ -40,12 +47,21 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
         const auto access = field->getAccess();
         const auto type = field->getType();
         const auto builtin = type.getTypePtr()->isBuiltinType();
+        const auto cxx_type = type->getAsCXXRecordDecl();
+        const auto cxx_pointee_type = type->getPointeeCXXRecordDecl();
         auto name = field->getNameAsString();
         if(type->isEnumeralType()) {
             reflect_enum(dynamic_cast<const EnumDecl*>(type->getAsTagDecl()), aggregator);
         }
         if(!builtin) {
-            reflect_type(type->getAsCXXRecordDecl(), aggregator);
+            if(cxx_type)
+            {
+                reflect_type(cxx_type, aggregator, recursion_guard);
+            }
+            else
+            {
+                reflect_type(cxx_pointee_type, aggregator, recursion_guard);
+            }
         } else {
             aggregator.add_trivial_type(type.getAsString());
         }
@@ -73,7 +89,7 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
 }
 
 void proxy_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator) {
-    reflect_type(decl, aggregator);
+    reflect_type(decl, aggregator, {});
 }
 
 bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpecializationDecl *Declaration) {
@@ -87,8 +103,17 @@ bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpe
                 if(type->isBuiltinType()) {
                     m_aggregator.add_trivial_type(type.getAsString());
                 } else {
-                    const auto decl = type.getTypePtr()->getAsCXXRecordDecl();
-                    reflect_type(decl, m_aggregator);
+                    const auto cxx_type = type->getAsCXXRecordDecl();
+                    const auto cxx_pointee_type = type->getPointeeCXXRecordDecl();
+
+                    if(cxx_type)
+                    {
+                        reflect_type(cxx_type, m_aggregator, {});
+                    }
+                    else
+                    {
+                        reflect_type(cxx_pointee_type, m_aggregator, {});
+                    }
                 }
             }
         }
@@ -101,7 +126,18 @@ bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpe
             const auto type = args.front().getAsType();
             if(!type->isBuiltinType()) {
                 const auto decl = type.getTypePtr()->getAsCXXRecordDecl();
-                proxy_type(decl, m_aggregator);
+
+                const auto cxx_type = type->getAsCXXRecordDecl();
+                const auto cxx_pointee_type = type->getPointeeCXXRecordDecl();
+
+                if(cxx_type)
+                {
+                    proxy_type(cxx_type, m_aggregator);
+                }
+                else
+                {
+                    proxy_type(cxx_pointee_type, m_aggregator);
+                }
             } else {
                 std::cerr << "Built in types can not be proxied." << std::endl;
             }

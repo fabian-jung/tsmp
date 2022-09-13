@@ -22,3 +22,8 @@ add_executable(enum enum.cpp)
 target_link_libraries(enum PUBLIC fmt::fmt)
 target_compile_options(enum PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
 enable_reflection(enum)
+
+add_executable(pointer_dereference pointer_dereference.cpp)
+target_link_libraries(pointer_dereference PUBLIC fmt::fmt)
+target_compile_options(pointer_dereference PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
+enable_reflection(pointer_dereference)
