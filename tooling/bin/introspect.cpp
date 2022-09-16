@@ -48,15 +48,17 @@ int main(int argc, const char* argv[]) {
         auto compileCommands = compilation_database->getCompileCommands(clang::tooling::getAbsolutePath(sourceFile));
         const auto builtinIncludePath = utils::getClangBuiltInIncludePath(output_file);
 
-        std::vector<std::string> compileArgs = utils::getCompileArgs(compileCommands);
-        // compileArgs.push_back("-I" + utils::getClangBuiltInIncludePath(argv[0]));
-        compileArgs.push_back("-ferror-limit=0");
-        compileArgs.push_back("-DTSMP_INTROSPECT_PASS");
-        std::transform(builtinIncludePath.begin(), builtinIncludePath.end(), std::back_inserter(compileArgs), add_include_flag);
-        fmt::print("With args: {}\n", fmt::join(compileArgs, " "));
-    
-        auto xfrontendAction = std::make_unique<XFrontendAction>(aggregator);
-        utils::customRunToolOnCodeWithArgs(std::move(xfrontendAction), sourcetxt, compileArgs, sourceFile);
+        for(const auto& compileCommand : compileCommands) {
+            std::vector<std::string> compileArgs = utils::getCompileArgs(compileCommand);
+            // compileArgs.push_back("-I" + utils::getClangBuiltInIncludePath(argv[0]));
+            compileArgs.push_back("-ferror-limit=0");
+            compileArgs.push_back("-DTSMP_INTROSPECT_PASS");
+            std::transform(builtinIncludePath.begin(), builtinIncludePath.end(), std::back_inserter(compileArgs), add_include_flag);
+            fmt::print("With args: {}\n", fmt::join(compileArgs, " "));
+        
+            auto xfrontendAction = std::make_unique<XFrontendAction>(aggregator);
+            utils::customRunToolOnCodeWithArgs(std::move(xfrontendAction), sourcetxt, compileArgs, sourceFile);
+        }
     }
 
     const auto dir = std::filesystem::path(output_file).remove_filename();

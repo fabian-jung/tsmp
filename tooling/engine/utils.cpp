@@ -46,15 +46,11 @@ bool fileExists(const std::string &file)
     return std::ifstream(file).good();
 }
 
-std::vector<std::string> getCompileArgs(const std::vector<clang::tooling::CompileCommand> &compileCommands)
+std::vector<std::string> getCompileArgs(const clang::tooling::CompileCommand& compileCommand)
 {
     std::vector<std::string> compileArgs;
-
-    for(auto &cmd : compileCommands)
-    {
-        for(auto &arg : cmd.CommandLine)
-            compileArgs.push_back(arg);
-    }
+    for(auto &arg : compileCommand.CommandLine)
+        compileArgs.push_back(arg);
 
     if(compileArgs.empty() == false)
     {
