@@ -28,6 +28,8 @@ int main(int argc, const char* argv[]) {
 
     fmt::print("running in: {}\n", std::filesystem::current_path().string());
 
+    data::reflection_aggregator_t aggregator;
+    
     for(auto &sourceFile : std::vector<const char*>(argv+1, argv+argc-1))
     {
         if(!utils::fileExists(sourceFile))
@@ -52,23 +54,21 @@ int main(int argc, const char* argv[]) {
         compileArgs.push_back("-DTSMP_INTROSPECT_PASS");
         std::transform(builtinIncludePath.begin(), builtinIncludePath.end(), std::back_inserter(compileArgs), add_include_flag);
         fmt::print("With args: {}\n", fmt::join(compileArgs, " "));
-
-        data::reflection_aggregator_t aggregator;
+    
         auto xfrontendAction = std::make_unique<XFrontendAction>(aggregator);
         utils::customRunToolOnCodeWithArgs(std::move(xfrontendAction), sourcetxt, compileArgs, sourceFile);
-
-        const auto dir = std::filesystem::path(output_file).remove_filename();
-        if(!std::filesystem::exists(dir)) {
-            if(!std::filesystem::create_directories(dir)) {
-                std::cerr << "Could not generate directory requested for output.\n" << dir << " is not writeable." << std::endl;
-                return 1;
-            }
-        }
-        std::cout << "Write to " << output_file << std::endl;
-        aggregator.generate(std::ofstream(output_file));
-        // std::cout << "Generated Code:" << std::endl;
-        // aggregator.generate(std::cout);
     }
+
+    const auto dir = std::filesystem::path(output_file).remove_filename();
+    if(!std::filesystem::exists(dir)) {
+        if(!std::filesystem::create_directories(dir)) {
+            std::cerr << "Could not generate directory requested for output.\n" << dir << " is not writeable." << std::endl;
+            return 1;
+        }
+    }
+
+    std::cout << "Write to " << output_file << std::endl;
+    aggregator.generate(std::ofstream(output_file));
 
     return 0;
 }
