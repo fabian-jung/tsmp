@@ -41,7 +41,7 @@ struct immutable_t {
 
     constexpr immutable_t(value_type input){
         if(input != value) {
-            throw std::runtime_error(fmt::format("Value missmatch: {} != {}", input, value));
+            throw std::runtime_error("Value missmatch");
         }
     }
 
