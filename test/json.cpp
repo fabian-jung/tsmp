@@ -35,6 +35,9 @@ TEST_CASE("enum json test", "[core][unit]") {
     REQUIRE(tsmp::from_json<enum_t>("\"value1\"") == enum_t::value1);
     REQUIRE(tsmp::from_json<enum_t>("\"value2\"") == enum_t::value2);
     REQUIRE(tsmp::from_json<enum_t>("\"value3\"") == enum_t::value3);
+
+    REQUIRE(tsmp::to_json(tsmp::immutable_t<enum_t::value1>()) == "\"value1\"");
+    REQUIRE(tsmp::from_json<tsmp::immutable_t<enum_t::value1>>("\"value1\"") == enum_t::value1);
 }
 
 TEST_CASE("string json test", "[core][unit]") {
