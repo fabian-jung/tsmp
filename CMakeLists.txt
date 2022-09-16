@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12.0)
 include(cmake/dependencyLoading.cmake)
 project(tsmp
-    VERSION 1.0.2
+    VERSION 1.0.3
     DESCRIPTION "Library for intrusion free, compile-time reflection with the help of code generation."
     LANGUAGES CXX
 )
