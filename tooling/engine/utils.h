@@ -20,7 +20,7 @@ namespace utils
 
 
     bool fileExists(const std::string &file);
-    std::vector<std::string> getCompileArgs(const std::vector<clang::tooling::CompileCommand> &compileCommands);
+    std::vector<std::string> getCompileArgs(const clang::tooling::CompileCommand& compileCommands);
     std::string getSourceCode(const std::string &sourceFile);
 
     std::vector<std::string> getClangBuiltInIncludePath(const std::string &fullCallPath);
