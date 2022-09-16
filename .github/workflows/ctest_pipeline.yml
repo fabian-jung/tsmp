@@ -76,7 +76,7 @@ jobs:
         include(FetchContent)
         FetchContent_Declare(
             tsmp
-            GIT_REPOSITORY https://github.com/fabian-jung/tsmp.git
+            GIT_REPOSITORY https://github.com/${{ github.repository }}.git
             GIT_TAG ${SHA}
         )
         FetchContent_Declare(
