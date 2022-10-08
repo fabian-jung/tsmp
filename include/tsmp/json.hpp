@@ -157,7 +157,11 @@ struct from_json_t<T, ErrorHandler> {
         if(!json.is_string()) {
             return ErrorHandler<T>{}(fmt::format("{} is not a string", json.dump()));
         }
-        return enum_from_string<T>(static_cast<std::string>(json));
+        try { // TODO remove try/catch block 
+            return enum_from_string<T>(static_cast<std::string>(json));
+        } catch(...) {
+            return ErrorHandler<T>{}("String not in enumeration");
+        }
     }
 };
 
@@ -212,7 +216,11 @@ struct from_json_t<immutable_t<value>, ErrorHandler> {
     using value_type = typename ErrorHandler<immutable_t<value>>::value_type;
     [[nodiscard]] value_type operator()(const nlohmann::json& json) {
         using capture_type = typename immutable_t<value>::value_type;
-        return { from_json_t<std::remove_const_t<capture_type>, ErrorHandler>{}(json) };
+        try { // TODO remove try/catch block
+            return { from_json_t<std::remove_const_t<capture_type>, ErrorHandler>{}(json) };
+        } catch(...) {
+            return ErrorHandler<immutable_t<value>>{}("Value missmatch");
+        }
     }
 };
 
@@ -238,7 +246,7 @@ struct from_json_t<std::variant<Args...>, ErrorHandler> {
     [[nodiscard]] static std::optional<value_type> try_decode(const nlohmann::json& json) noexcept {
         const auto result = from_json_t<T, nullopt_handler_t>{}(json);
         if(result) {
-            return value_type{ result.value() };
+            return value_type{ std::move(result.value()) };
         } else {
             return std::nullopt;
         }
