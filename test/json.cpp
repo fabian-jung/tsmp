@@ -2,6 +2,7 @@
 #include "tsmp/string_literal.hpp"
 #include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <deque>
@@ -38,6 +39,9 @@ TEST_CASE("enum json test", "[core][unit]") {
 
     REQUIRE(tsmp::to_json(tsmp::immutable_t<enum_t::value1>()) == "\"value1\"");
     REQUIRE(tsmp::from_json<tsmp::immutable_t<enum_t::value1>>("\"value1\"") == enum_t::value1);
+
+    REQUIRE_THROWS(tsmp::from_json<enum_t>("\"invalid\""));
+    REQUIRE(tsmp::try_from_json<enum_t>("\"invalid\"") == std::nullopt);
 }
 
 TEST_CASE("string json test", "[core][unit]") {
@@ -163,4 +167,30 @@ TEST_CASE("validator json test", "[core][unit]") {
 
     REQUIRE(tsmp::from_json<std::uint32_t>("42.0", is_fourtytwo) == 42);
     REQUIRE(tsmp::try_from_json<std::uint32_t>("42", not_fourtytwo) == std::nullopt);
+}
+
+TEST_CASE("complex variant json test", "[core][unit]") {
+    enum class enum_t {
+        foo,
+        bar
+    };
+    using small_t = std::variant<tsmp::immutable_t<enum_t::foo>, tsmp::immutable_t<enum_t::bar>>;
+    REQUIRE_NOTHROW(tsmp::from_json<small_t>("\"foo\""));
+    REQUIRE_NOTHROW(tsmp::from_json<small_t>("\"bar\""));
+
+    struct foo_t {
+        tsmp::immutable_t<enum_t::foo> type;
+    };
+
+    struct bar_t {
+        tsmp::immutable_t<enum_t::bar> type;
+    };
+
+    using adapter = tsmp::enum_value_adapter<enum_t>;
+
+    using variant = std::variant<foo_t, bar_t>;
+    REQUIRE(tsmp::to_json(variant(foo_t{})) == "{\"type\":\"foo\"}");
+    REQUIRE(tsmp::to_json(variant(bar_t{})) == "{\"type\":\"bar\"}");
+    REQUIRE_NOTHROW(std::get<foo_t>(tsmp::from_json<variant>("{\"type\":\"foo\"}")));
+    REQUIRE_NOTHROW(std::get<bar_t>(tsmp::from_json<variant>("{\"type\":\"bar\"}")));
 }
