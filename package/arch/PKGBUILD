@@ -1,12 +1,12 @@
 # Maintainer: Fabian Jung <git@fabian-jung.info>
 pkgname=tsmp
-pkgver=0.1
+pkgver=1.0.4
 pkgrel=1
 pkgdesc='C++ Reflection Library'
 arch=('x86_64')
 url='https://github.com/fabian-jung/tsmp'
 license=('MIT')
-depends=('gcc' 'fmt') # 'llvm' 'llvm-libs'
+depends=('gcc' 'fmt')
 checkdepends=('catch2')
 optdepends=()
 

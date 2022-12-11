@@ -1,6 +1,9 @@
 #include "aggregator.hpp"
 #include "data/types.hpp"
 #include <algorithm>
+#include <iostream>
+#include <fmt/core.h>
+#include <fmt/ostream.h>
 
 namespace data {
 
@@ -35,6 +38,33 @@ void reflection_aggregator_t::add_enum_decl(enum_decl_t decl) {
         return;
     }
     m_enums.emplace_back(std::move(decl));
+}
+
+int reflection_aggregator_t::generate(std::filesystem::path path) const {
+
+    const auto dir = std::filesystem::path(path).remove_filename();
+    if(!std::filesystem::exists(dir)) {
+        if(!std::filesystem::create_directories(dir)) {
+            fmt::print(std::cerr, "Could not generate directory requested for output {} is not writeable.\n", dir.string());
+            return 1;
+        }
+    }
+
+    fmt::print("Write to {}\n", path.string());
+
+    prefix_splitter_t splitter(m_records, m_trivial_types);
+    enum_splitter_t enum_splitter(m_enums);
+    auto output = fmt::output_file(path.string());
+    output.print("#pragma once\n");
+    output.print("#include <tuple>\n");
+    output.print("#include <tsmp/reflect.hpp>\n");
+    output.print("#include <tsmp/proxy.hpp>\n");
+    output.print("namespace tsmp {{\n");
+    output.print("{}\n", splitter.render());
+    output.print("{}\n", enum_splitter.render());
+    output.print("}}\n");
+
+    return 0;
 }
 
 

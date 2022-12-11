@@ -20,10 +20,8 @@ bool introspect_visitor_t::shouldVisitImplicitCode() const {
 
 void reflect_enum(const EnumDecl* decl, data::reflection_aggregator_t& aggregator) {
 
-    llvm::outs() << "enum analysis for" << decl->getDeclName() << "  yields values:\n";
     data::enum_decl_t enum_decl;
     for(auto enumValue : decl->enumerators()) {
-        llvm::outs() << "    " << enumValue->getDeclName() << "\n";
         enum_decl.values.emplace_back(enumValue->getDeclName().getAsString());
     }
     aggregator.add_enum_decl(enum_decl);
@@ -31,12 +29,9 @@ void reflect_enum(const EnumDecl* decl, data::reflection_aggregator_t& aggregato
 
 void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator) {
     if(decl == nullptr) return;
-    llvm::outs() << "member analysis for " << decl->getNameAsString() << "\n";
     data::record_decl_t record_decl;
     record_decl.name = decl->getNameAsString();
     for(const auto& field : decl->fields()) {
-        // const auto index = field->getFieldIndex();
-        // auto name = field->getQualifiedNameAsString();
         const auto access = field->getAccess();
         const auto type = field->getType();
         const auto builtin = type.getTypePtr()->isBuiltinType();
@@ -49,9 +44,7 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
         } else {
             aggregator.add_trivial_type(type.getAsString());
         }
-        // llvm::outs() << "field:" << field->getNameAsString() << ":" << type.getAsString() << " is builtin " << builtin << "\n";
         if(access != AS_public) {
-            llvm::outs() << "ignore private " << record_decl.name << "::" << name << "\n";
             continue;
         }
         if(name.size() > 0) {
@@ -60,7 +53,6 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
     }
     for(const auto& method : decl->methods()) {
         auto name = method->getNameAsString();
-        // llvm::outs() << "found method with name = " << name << "\n";
         if(
             name.size() > 0 &&
             name != record_decl.name && // Addresses of constructors can not be taken, therefore we can not reflect them
@@ -77,9 +69,7 @@ void proxy_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggreg
 }
 
 bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpecializationDecl *Declaration) {
-    // llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
     if(Declaration->getDeclName().getAsString() == "reflect") {
-        llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
         const auto args = Declaration->getTemplateArgs().asArray();
         for(auto i : args) {
             if(i.getKind() == TemplateArgument::ArgKind::Type) {
@@ -95,7 +85,6 @@ bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpe
     }
 
     if(Declaration->getDeclName().getAsString() == "proxy") {
-        llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
         const auto args = Declaration->getTemplateArgs().asArray();
         if(args.size() >= 1) {
             const auto type = args.front().getAsType();
@@ -109,7 +98,6 @@ bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpe
     }
 
     if(Declaration->getDeclName().getAsString() == "enum_value_adapter") {
-        llvm::outs() << "Found ClassTemplateSpecializationDecl decl " << Declaration->getQualifiedNameAsString() << " " << Declaration->getDeclName() << "\n";
         const auto args = Declaration->getTemplateArgs().asArray();
         if(args.size() >= 1) {
             const auto type = args.front().getAsType();
@@ -121,6 +109,5 @@ bool introspect_visitor_t::VisitClassTemplateSpecializationDecl(ClassTemplateSpe
             }
         }
     }
-
     return true;
 }

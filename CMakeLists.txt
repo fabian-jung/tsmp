@@ -9,9 +9,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE CACHE INTERNAL "The compile database is u
 LoadDependencies()
 
 if(MSVC)
-    SET(TSMP_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} /W4 /WX)
+    SET(TSMP_CMAKE_CXX_FLAGS /W4 /WX)
 else()
-    SET(TSMP_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-braces)
+    SET(TSMP_CMAKE_CXX_FLAGS -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-missing-braces)
 endif()
 
 add_subdirectory(tooling)
@@ -42,6 +42,14 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     # in this case we do not to pollute the global configuration with the example and test targets.
     add_subdirectory(examples)
     add_subdirectory(test)
+
+    if(MSVC)
+        target_compile_options(introspect_lib PRIVATE "/O3")
+        target_compile_options(introspect_tool PRIVATE "/O3")
+    else()
+        target_compile_options(introspect_lib PRIVATE "-O3")
+        target_compile_options(introspect_tool PRIVATE "-O3")
+    endif()
 
     install(TARGETS tsmp introspect_tool EXPORT tsmpConfig DESTINATION lib/tsmp)
     install(EXPORT tsmpConfig NAMESPACE tsmp:: FILE tsmpTargets.cmake DESTINATION lib/cmake/tsmp)
