@@ -17,7 +17,7 @@ namespace clang
 class XFrontendAction : public clang::ASTFrontendAction
 {
     public:
-        XFrontendAction(data::reflection_aggregator_t& aggregator);
+        explicit XFrontendAction(data::reflection_aggregator_t& aggregator);
         virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance &compiler, llvm::StringRef inFile) override;
 
     private:
