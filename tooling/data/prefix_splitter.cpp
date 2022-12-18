@@ -33,10 +33,10 @@ void prefix_splitter_t::add_record(record_decl_t record) {
     for(auto& r : m_records) {
         if(field_list_match(r, record)) {
             r.name = "<unknown>";
-            std::cout << "Reject introspection for " << record.name << " because of duplication.\n";
+            fmt::print("Reject introspection for {} because of duplication.\n", record.name);
             return;
         } else {
-            std::cout << "Add introspection for class " << record.name << '\n';
+            fmt::print("Add introspection for class {}\n", record.name);
         }
     }
     for(const auto& field : record.fields) {
@@ -140,7 +140,7 @@ std::string prefix_splitter_t::render() const {
         int i = 0;
         for(const auto& f : record.fields) {
             fields += fmt::format("\t\t\tfield_description_t{{ {0}, \"{1}\", &T::{1} }},\n", i++, f.name);
-            proxy_members += fmt::format("\tdecltype(accessor(base).{0})& {0} = accessor(base).{0};\n", f.name);
+            proxy_members += fmt::format("\tdecltype(__tsmp_accessor(__tsmp_base).{0})& {0} = __tsmp_accessor(__tsmp_base).{0};\n", f.name);
         }
         i = 0;
         std::set<std::string> function_names;
@@ -161,8 +161,8 @@ std::string prefix_splitter_t::render() const {
             proxy_functions += fmt::format(
 R"(    template <class... Args>
     constexpr decltype(auto) {0}(Args&&... args) {{
-        auto base_function = [this](auto... argv){{ return accessor(base).{0}(std::forward<decltype(argv)>(argv)...); }};
-        return fn(base_function, "{0}", std::forward<Args>(args)...);
+        auto __tsmp_base_function = [this](auto... argv){{ return __tsmp_accessor(__tsmp_base).{0}(std::forward<decltype(argv)>(argv)...); }};
+        return __tsmp_fn(__tsmp_base_function, "{0}", std::forward<Args>(args)...);
     }}
 )",
                 name
@@ -218,9 +218,9 @@ struct reflect{} {{
 R"(template <class T, template<class> class Container, class Accessor, class Functor> 
 {}
 struct proxy{} {{
-    Container<T> base;
-    Accessor accessor; // maps container<foo_t> to foo_t&
-    Functor fn; // User function
+    Container<T> __tsmp_base;
+    Accessor __tsmp_accessor; // maps container<foo_t> to foo_t&
+    Functor __tsmp_fn; // User function
 
 {}
 

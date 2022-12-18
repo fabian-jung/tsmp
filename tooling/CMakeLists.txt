@@ -3,11 +3,9 @@ set(introspect_lib_src
     data/types.cpp
     data/prefix_splitter.cpp
     data/enum_splitter.cpp
-    engine/introspect_visitor.cpp
+    engine/code_generator.cpp
     engine/utils.cpp
-    engine/consumer.cpp
-    engine/frontendaction.cpp
-)
+ )
 
 add_library(introspect_lib STATIC ${introspect_lib_src})
 target_link_libraries(introspect_lib PUBLIC LibClangCpp fmt::fmt)

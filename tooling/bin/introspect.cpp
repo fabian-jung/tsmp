@@ -1,10 +1,12 @@
 #include <algorithm>
+#include <clang/Basic/LLVM.h>
+#include <clang/Tooling/ArgumentsAdjusters.h>
+#include <clang/Tooling/Tooling.h>
 #include <iterator>
 #include <llvm/Support/CommandLine.h>
 #include <clang/Tooling/CommonOptionsParser.h>
 #include "engine/utils.h"
-#include "engine/frontendaction.hpp"
-#include "data/aggregator.hpp"
+#include "engine/code_generator.hpp"
 
 #include <iostream>
 #include <fmt/ostream.h>
@@ -15,9 +17,25 @@
 #include <string>
 #include <vector>
 
-std::string add_include_flag(std::string path) {
-    return "-I"+path;
-}
+#include <clang/Parse/ParseAST.h>
+#include <clang/Parse/Parser.h>
+
+struct tsmp_argument_adjuster_t {
+    std::string output_file;
+    clang::tooling::CommandLineArguments operator()(clang::tooling::CommandLineArguments args, clang::StringRef file) {
+        args.push_back("-ferror-limit=0");
+        args.push_back("-DTSMP_INTROSPECT_PASS");
+        
+        const auto builtinIncludePath = utils::getClangBuiltInIncludePath(output_file);
+        std::transform(builtinIncludePath.begin(), builtinIncludePath.end(), std::back_inserter(args), add_include_flag);
+        return args;
+    };
+
+    static std::string add_include_flag(std::string path) {
+        return "-I"+path;
+    }
+};
+
 
 int main(int argc, const char* argv[]) {
     fmt::print("called ./introspect {}\n", fmt::join(std::vector<const char*>{argv, argv+argc}, " "));
@@ -25,6 +43,7 @@ int main(int argc, const char* argv[]) {
         fmt::print(std::cerr, "Not enought parameters supplied. Usage is ./introspect_tool <input file> [<additional input files>] <output file>\n");
         return 1;
     }
+
     std::string output_file(argv[argc-1]);
 
     std::string error;
@@ -34,31 +53,20 @@ int main(int argc, const char* argv[]) {
         fmt::print(std::cerr, "Compilation failed with error \"{}\". Maybe compilation database not found under {}\n", error, current_path);
     }
 
-    data::reflection_aggregator_t aggregator;
-
-    for(const auto &source_file : std::vector<const char*>(argv+1, argv+argc-1))
-    {
-        if(!utils::fileExists(source_file))
-        {
-            llvm::errs() << "File: " << source_file << " does not exist!\n";
-            return -1;
-        }
-        fmt::print("Analyzing AST of {}\n", source_file );
-        const auto compile_commands = compilation_database->getCompileCommands(clang::tooling::getAbsolutePath(source_file));
-        const auto builtin_include_path = utils::getClangBuiltInIncludePath(output_file);
-        const auto source_code_contents = utils::getSourceCode(source_file);
-        
-        for(const auto& compileCommand : compile_commands) {
-            std::vector<std::string> compileArgs = utils::getCompileArgs(compileCommand);
-            compileArgs.push_back("-ferror-limit=0");
-            compileArgs.push_back("-DTSMP_INTROSPECT_PASS");
-            std::transform(builtin_include_path.begin(), builtin_include_path.end(), std::back_inserter(compileArgs), add_include_flag);
-            fmt::print("cxxflags: {}\n", fmt::join(compileArgs, " "));
-        
-            auto xfrontendAction = std::make_unique<XFrontendAction>(aggregator);
-            utils::customRunToolOnCodeWithArgs(std::move(xfrontendAction), source_code_contents, compileArgs, source_file);
-        }
+    const auto dir = std::filesystem::path(output_file).remove_filename();
+    if(!std::filesystem::exists(dir)) {
+        fmt::print(std::cerr, "Could not generate output. Directory {} requested for output does not exist.\n", dir.string());
+        return 1;
     }
+    
+    clang::tooling::ClangTool tool(*compilation_database, std::vector<std::string>(argv+1, argv+argc-1));
+    tool.appendArgumentsAdjuster(tsmp_argument_adjuster_t{output_file});
+    tool.appendArgumentsAdjuster(clang::tooling::getClangSyntaxOnlyAdjuster());
+    const auto aggregator = generate_code_for_target(tool);
+    
 
-    return aggregator.generate(output_file);
+    fmt::print("Write to {}.\n ", output_file);
+    aggregator.generate(output_file);
+
+    return 0;
 }

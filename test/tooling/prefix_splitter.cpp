@@ -3,8 +3,6 @@
 
 #include <data/prefix_splitter.hpp>
 
-#include <iostream>
-
 using namespace data;
 
 TEST_CASE("prefix_splitter_t simple construction", "[core][unit]") {
@@ -33,8 +31,6 @@ TEST_CASE("prefix_splitter_t simple construction 2", "[core][unit]") {
 
     REQUIRE(splitter.records()[0].name == "foo_t");
     REQUIRE(splitter.records()[1].name == "bar_t");
-
-    std::cout << splitter.render() << std::endl;
 }
 
 TEST_CASE("prefix_splitter_t zero fields construction", "[core][unit]") {
