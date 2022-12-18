@@ -93,10 +93,10 @@ struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::Dereferenc
     {}
 
     polymorphic_value(const polymorphic_value& cpy) :
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.base.get()) }, {}, {} },
+        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.__tsmp_base.get()) }, {}, {} },
         tsmp_copy_helper{cpy.tsmp_copy_helper}
     {
-        if(this->base.get() == nullptr) {
+        if(this->__tsmp_base.get() == nullptr) {
             throw std::runtime_error("Trying to copy non copyable value.");
         }
     }
@@ -104,9 +104,9 @@ struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::Dereferenc
     polymorphic_value(polymorphic_value&& ) = default;
     
     polymorphic_value& operator=(const polymorphic_value& cpy) {
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor>::base = detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.base.get()), {}, {} };
+        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor>::__tsmp_base = detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.__tsmp_base.get()), {}, {} };
         tsmp_copy_helper = cpy.tsmp_copy_helper;
-        if(this->base.get() == nullptr) {
+        if(this->__tsmp_base.get() == nullptr) {
             throw std::runtime_error("Trying to copy non copyable value.");
         }
     }

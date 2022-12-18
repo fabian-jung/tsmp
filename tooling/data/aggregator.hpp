@@ -1,11 +1,8 @@
 #pragma once
 
-#include "fmt/os.h"
 #include "types.hpp"
 #include "prefix_splitter.hpp"
 #include "enum_splitter.hpp"
-
-#include <filesystem>
 
 namespace data {
 
@@ -16,8 +13,9 @@ public:
     void add_trivial_type(std::string name);
     void add_proxy_decl(record_decl_t decl);
     void add_enum_decl(enum_decl_t decl);
-    int generate(std::filesystem::path path) const;
 
+    void generate(const std::string& path) const;
+    
 private:
     std::vector<record_decl_t> m_records;
     std::vector<std::string> m_trivial_types;

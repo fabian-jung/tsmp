@@ -1,3 +1,4 @@
 build/
 build-vcpkg/
 build-fetch_content/
+compile_commands.json
