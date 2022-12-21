@@ -2,6 +2,11 @@
 
 ## 1.0.6
 
+Bugfix that prevented proxys for virtual classes on clang.
+
+
+## 1.0.6
+
 test
 
 
