@@ -1,8 +1,8 @@
 {
     "name": "tsmp",
+    "version": "1.0.4",
     "description": "The Tool-Supported-Meta-Programming library.",
     "homepage":"https://github.com/fabian-jung/tsmp",
-    "version": "1.0.4",
     "dependencies": [
       "catch2",
       "fmt",
