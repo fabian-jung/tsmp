@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.6
+
+test
+
+
 ## 1.0.5
 
 - Refactor tooling backend
