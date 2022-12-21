@@ -100,7 +100,7 @@ std::string prefix_splitter_t::render() const {
     std::string result;
     for(auto field : m_fields) {
         result += fmt::format(
-            "template<class T> concept has_field_{0} = requires(T) {{ T::{0}; }};\n",
+            "template<class T> concept has_field_{0} = requires {{ T::{0}; }};\n",
                 field.name
         );
     }
@@ -117,7 +117,7 @@ std::string prefix_splitter_t::render() const {
 
     for(auto function_name : escaped_function_names) {
         result += fmt::format(
-            "template<class T> concept has_function_{0} = requires(T) {{ &T::{0}; }};\n",
+            "template<class T> concept has_function_{0} = requires {{ &T::{0}; }};\n",
             function_name
         );
     }
