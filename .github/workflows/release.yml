@@ -1,0 +1,62 @@
+name: release_pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: New version tag. Must match the format <major>.<minor>.<patch>. All positions can consist of alphanumerical characters.
+        type: string
+        required: true
+      changelog:
+        description: What has changed since the last release. Markdown syntax is supportet. Captions should be on level 3 (###) or lower.
+        type: string
+      branch:
+        description: What branch to use to publish from
+        type: string
+        default: main
+        required: true
+      name:
+        description: Who is author of this release
+        type: string
+        default: Fabian Jung
+        required: true
+      email:
+        description: What is you mail address
+        type: string
+        default: git@fabian-jung.net
+        required: true
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: workflow configuration
+      run: |
+        echo "releasing ${{ toJSON(github.event.inputs) }}"
+    
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        ref: ${{github.event.inputs.branch}}
+
+    - name: bump version
+      run: |
+        echo -e "${{github.event.inputs.changelog}}" | ./scripts/bump_version.sh ${{github.event.inputs.version}}
+    
+    - name: Commit & tag
+      run: |
+        git config --global user.name '${{github.event.inputs.name}}'
+        git config --global user.email '${{github.event.inputs.email}}'
+        git add CMakeLists.txt
+        git add doc/Changelog.md
+        git add scripts/package/arch/PKGBUILD
+        git add vcpkg.json
+        git commit -m "Bump version to ${{github.event.inputs.version}}"
+        git push
+
+    - name: publish release
+      run: gh release create ${{github.event.inputs.version}} -t v${{github.event.inputs.version}} --target ${{github.event.inputs.branch}} --notes "${{github.event.inputs.changelog}}"  --latest
