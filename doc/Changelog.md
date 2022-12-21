@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5
+
+- Refactor tooling backend
+
+
 ## 1.0.4
 
 - fix json_decode throwing exceptions
