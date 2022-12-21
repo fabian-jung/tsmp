@@ -30,7 +30,7 @@ env:
   GH_TOKEN: ${{ github.token }}
 
 jobs:
-  bump_version:
+  release:
     runs-on: ubuntu-latest
     
     steps:
@@ -56,7 +56,9 @@ jobs:
         git add scripts/package/arch/PKGBUILD
         git add vcpkg.json
         git commit -m "Bump version to ${{github.event.inputs.version}}"
+        git tag -a "v${{github.event.inputs.version}}" -m "${{github.event.inputs.changelog}}"
         git push
 
+
     - name: publish release
-      run: gh release create ${{github.event.inputs.version}} -t v${{github.event.inputs.version}} --target ${{github.event.inputs.branch}} --notes "${{github.event.inputs.changelog}}"  --latest
+      run: gh release create v${{github.event.inputs.version}} -t v${{github.event.inputs.version}} --target ${{github.event.inputs.branch}} --notes "${{github.event.inputs.changelog}}"  --latest
