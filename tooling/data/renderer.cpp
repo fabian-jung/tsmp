@@ -42,6 +42,11 @@ std::string strip_special_chars(std::string input) {
     return input;
 }
 
+function_decl_t strip_special_chars_from_function(function_decl_t input) {
+    input.name = strip_special_chars(std::move(input.name));
+    return input;
+}
+
 std::string render_forward_declaration(const std::vector<record_decl_t>& records) {
     std::string result;
     for(const auto& record : records) {
@@ -61,7 +66,7 @@ std::string render_forward_declaration(const std::vector<record_decl_t>& records
     return result;
 }
 
-std::string render_concepts_for_fields(const std::vector<field_decl_t>& fields) {
+std::string render_concepts_for_fields(const std::set<field_decl_t>& fields) {
     std::string result;
     for(auto field : fields) {
         result += fmt::format(
@@ -72,32 +77,34 @@ std::string render_concepts_for_fields(const std::vector<field_decl_t>& fields) 
     return result;
 }
 
-std::string render_concepts_for_functions(const std::vector<function_decl_t>& escaped_function_names) {
+std::string render_concepts_for_functions(const std::set<function_decl_t>& escaped_function_names) {
     std::string result;
     for(const auto& function_name : escaped_function_names) {
-        result += fmt::format(
-            "template<class T> concept has_function_{0} = requires {{ &T::{0}; }};\n",
-            function_name.name
-        );
+        if(!function_name.overloaded) {
+            result += fmt::format(
+                "template<class T> concept has_function_{0} = requires {{ &T::{0}; }};\n",
+                function_name.name
+            );
+        }
     }
     return result;
 }
 
-std::vector<function_decl_t> escape_function_names(std::vector<function_decl_t> functions) {
-    for(auto& function : functions) {
-        function.name = strip_special_chars(std::move(function.name));
-    }
-    return functions;
+std::set<function_decl_t> escape_function_names(const std::set<function_decl_t>& functions) {
+    std::set<function_decl_t> result;
+    std::transform(functions.begin(), functions.end(), std::inserter(result, result.begin()), strip_special_chars_from_function);
+
+    return result;
 }
 
 std::vector<record_decl_t> escape_function_names(std::vector<record_decl_t> records) {
     for(auto& record : records) {
-       record.functions = escape_function_names(std::move(record.functions));
+       record.functions = escape_function_names(record.functions);
     }
     return records;
 }
 
-std::string render_field_description(const std::vector<field_decl_t>& fields) {
+std::string render_field_description(const std::set<field_decl_t>& fields) {
     std::string result;
     int i = 0;
     for(const auto& f : fields) {
@@ -109,12 +116,12 @@ std::string render_field_description(const std::vector<field_decl_t>& fields) {
     return result;
 }
 
-std::string render_function_description(const std::vector<function_decl_t>& functions) {
+std::string render_function_description(const std::set<function_decl_t>& functions) {
     std::string result;
     int i = 0;
     for(const auto& f : functions) {
         if(f.name == "~") continue;
-        result += fmt::format("\t\t\tfield_description_t{{ {0}, \"{1}\", &T::{1} }},\n", i++, f.name);
+        result += fmt::format("\t\t\tfunction_description_t{{ {0}, \"{1}\", &T::{1} }},\n", i++, f.name);
     }
     
     if(!functions.empty()) {
@@ -123,7 +130,7 @@ std::string render_function_description(const std::vector<function_decl_t>& func
     return result;
 }
 
-std::string render_proxy_member(const std::vector<field_decl_t>& fields) {
+std::string render_proxy_member(const std::set<field_decl_t>& fields) {
     std::string result;
     int i = 0;
     for(const auto& f : fields) {
@@ -132,7 +139,7 @@ std::string render_proxy_member(const std::vector<field_decl_t>& fields) {
 
     return result;
 }
-std::string render_proxy_functions(const std::vector<function_decl_t>& functions) {
+std::string render_proxy_functions(const std::set<function_decl_t>& functions) {
     std::string result;
 
     std::set<std::string> function_names;
@@ -148,7 +155,7 @@ std::string render_proxy_functions(const std::vector<function_decl_t>& functions
         result += fmt::format(
 R"(template <class... Args>
 constexpr decltype(auto) {0}(Args&&... args) {{
-    auto __tsmp_base_function = [this](auto... argv){{ return __tsmp_accessor(__tsmp_base).{0}(std::forward<decltype(argv)>(argv)...); }};
+    auto __tsmp_base_function = [this](auto... argv) -> decltype(auto) {{ return __tsmp_accessor(__tsmp_base).{0}(std::forward<decltype(argv)>(argv)...); }};
     return __tsmp_fn(__tsmp_base_function, "{0}", std::forward<Args>(args)...);
 }}
 )",
@@ -184,11 +191,17 @@ std::string render_requires_clauses(const record_decl_t& record) {
         if(!record.fields.empty()) {               
             result += fmt::format("has_field_{}<T>", fmt::join(record.fields, "<T> && has_field_"));
         }
+        std::vector<function_decl_t> non_overloaded_functions;
+        for(const auto& function : record.functions) {
+            if(!function.overloaded) {
+                non_overloaded_functions.emplace_back(function);
+            }
+        }
         if(!record.functions.empty()) {
             if(!record.fields.empty()) {
                 result += " && " ;
             }
-            result += fmt::format("has_function_{}<T>", fmt::join(record.functions, "<T> && has_function_"));
+            result += fmt::format("has_function_{}<T>", fmt::join(non_overloaded_functions, "<T> && has_function_"));
         }
     }
     return result;
@@ -200,6 +213,7 @@ R"(template <class T>
 {}
 struct reflect{} {{
     static constexpr bool reflectable = true;
+    static constexpr bool forward_declareable = {};
     constexpr static auto name() {{
         return "{}";
     }}
@@ -273,7 +287,8 @@ struct reflect<{0}> {{
             fmt::format(
                 reflect_trait_template,
                 requirements,
-                requirements.empty() ? "" : "<T>", 
+                requirements.empty() ? "" : "<T>",
+                record.is_forward_declarable,
                 record.name,
                 fields,
                 functions

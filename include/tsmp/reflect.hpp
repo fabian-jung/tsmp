@@ -17,6 +17,16 @@ struct field_description_t {
 template <class T, class V>
 field_description_t(std::size_t, std::string_view,  V T::*) -> field_description_t<T, V>;
 
+template <class Fn>
+struct function_description_t {
+    size_t id;
+    std::string_view name;
+    Fn ptr;
+};
+
+template <class T>
+function_description_t(size_t, std::string_view, T) -> function_description_t<T>;
+
 template <class T>
 concept Enum = std::is_enum_v<T>;
 
