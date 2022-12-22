@@ -27,38 +27,15 @@ namespace detail {
         );
     }
 
-    template<class... FunctionsTuple>
-    struct result_variant;
-
-    template <class MemberFunctionPtr>
-    struct result;
-
     template <class T, class V, class U>
     static constexpr bool try_set(T& internal, V T::*ptr, U&& value) {
         if constexpr(std::is_same_v<V, U>) {
             internal.*ptr =  std::forward<U>(value);
             return true;
         } else {
-            throw std::runtime_error("type missmatch between ");
+            throw std::runtime_error("type mismatch between ");
         }
     }
-    template <class T, class Result, class... Args>
-    struct result<Result (T::*)(Args...)> {
-        using type = Result;
-    };
-
-    template <class Result, class... Args>
-    struct result<Result(Args...)> {
-        using type = Result;
-    };
-
-    template <class Result, class... Args>
-    struct result<Result(Args...) const> {
-        using type = Result;
-    };
-
-    template <class T>
-    using result_t = typename result<T>::type;
     
     template <class T>
     using reference_wrapper_t = std::conditional_t<std::is_reference_v<T>, std::reference_wrapper<std::remove_reference_t<T>>, T>;
@@ -77,6 +54,8 @@ namespace detail {
         using type = std::variant<>;
     };
 
+    struct not_invokeable_t {};
+
     template <class T, class Variant>
     struct add_type;
 
@@ -90,13 +69,51 @@ namespace detail {
         using type = typename add_type<T, remove_duplicates_t<std::variant<Ts...>>>::type;
     };
 
-    template <class Base, class... MemberFunctionPtr>
-    struct result_variant<std::tuple<tsmp::field_description_t<Base, MemberFunctionPtr>...>> {
-        using type = remove_duplicates_t<std::variant<reference_wrapper_t<monostate_wrapper_t<result_t<MemberFunctionPtr>>>...>>;
+
+    template <class Fn, class... Args>
+    struct result {};
+
+    template <class Fn, class... Args>
+    requires std::is_invocable<Fn, Args...>::value
+    struct result<Fn, Args...> {
+        using type = std::invoke_result_t<Fn, Args...>;
     };
 
-    template <class Functions>
-    using result_variant_t = typename result_variant<Functions>::type;
+    template <class Fn, class... Args>
+    requires (!std::is_invocable<Fn, Args...>::value)
+    struct result<Fn, Args...> {
+        using type = not_invokeable_t;
+    };
+
+    template <class Fn, class... Args>
+    using result_t = typename result<Fn, Args...>::type;
+
+    template<class FunctionsTuple, class... Args>
+    struct result_variant;
+
+    template <class... MemberFunctionPtr, class... Args>
+    struct result_variant<std::tuple<tsmp::function_description_t<MemberFunctionPtr>...>, Args...> {
+        using type = remove_duplicates_t<std::variant<reference_wrapper_t<monostate_wrapper_t<result_t<MemberFunctionPtr, Args...>>>...>>;
+    };
+
+    template <class Functions, class... Args>
+    using result_variant_t =
+     typename result_variant<Functions, Args...>::type;
+
+    template <class T>
+    struct has_monostate {
+        constexpr static auto value = false;
+    };
+    
+    template <template<class...> class T, class... Ts>
+    struct has_monostate<T<std::monostate, Ts...>> {
+        constexpr static auto value = true;
+    };
+
+    template <template<class...> class T, class Tf, class... Ts>
+    struct has_monostate<T<Tf, Ts...>> {
+        constexpr static auto value = has_monostate<T<Ts...>>::value;
+    };
 
 }
 
@@ -157,19 +174,21 @@ struct introspect {
             reflect<T>::functions()
         );
         auto variant = functions[id];
-        using result_t = detail::result_variant_t<decltype(reflect<T>::functions())>;
+        using result_t = detail::result_variant_t<decltype(reflect<T>::functions()), T, Args...>;
 
         return std::visit(
-            [&](auto&& ptr) -> result_t {
+            [&](const auto& ptr) -> result_t {
                 if constexpr(std::is_invocable_v<decltype(ptr), T, Args...>) {
                     if constexpr(std::is_same_v<std::invoke_result_t<decltype(ptr), T, Args...>, void>) {
-                        (internal.*ptr)(std::forward<Args>(args)...);
-                        return {};
+                        std::invoke(ptr, internal, std::forward<Args>(args)...);
+                        if constexpr(detail::has_monostate<result_t>::value) {
+                            return std::monostate{};
+                        }
                     } else {
-                        return { (internal.*ptr)(std::forward<Args>(args)...) };
+                        return { std::invoke(ptr, internal, std::forward<Args>(args)...) };
                     }
                 } else {
-                    throw std::runtime_error("member function parameter missmatch.");
+                    throw std::runtime_error("member function parameter mismatch.");
                 }
             },
             variant

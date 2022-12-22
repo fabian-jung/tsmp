@@ -22,3 +22,8 @@ add_executable(enum enum.cpp)
 target_link_libraries(enum PUBLIC fmt::fmt)
 target_compile_options(enum PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
 enable_reflection(enum)
+
+add_executable(tracing tracing.cpp)
+target_link_libraries(tracing PUBLIC fmt::fmt)
+target_compile_options(tracing PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
+enable_reflection(tracing)

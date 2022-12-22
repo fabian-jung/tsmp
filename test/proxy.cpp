@@ -18,7 +18,11 @@ struct foo_t {
 struct interface_t {
     virtual ~interface_t() = default;
 
-    virtual std::string print() const { return ""; } /*= 0*/;
+    virtual std::string print() const = 0;
+
+
+private:
+    void private_function() {}
 };
 
 struct foo_impl_t : public interface_t {
@@ -141,4 +145,30 @@ TEST_CASE("shared proxy test", "[unit]") {
         auto foo2 = foo;
         REQUIRE(foo2.a == 1);
     }
+}
+
+TEST_CASE("proxy returning reference test", "[unit]") {
+    auto proxy = tsmp::value_proxy{ std::array<int, 5>{} };
+    proxy.front() = 4;
+    REQUIRE(proxy.__tsmp_base.front() == 4);
+}
+
+struct overloaded_foo_t {
+    int identity(int value) {
+        return value;
+    }
+    
+    double identity(double value) {
+        return value;
+    }
+
+    std::string identity(std::string value) {
+        return value;
+    }
+};
+TEST_CASE("proxy returning from overloaded function test", "[unit]") {
+    auto proxy = tsmp::value_proxy{ overloaded_foo_t{} };
+    REQUIRE(proxy.identity(4) == 4);
+    REQUIRE(proxy.identity("4") == "4");
+    REQUIRE(proxy.identity(4.0) == 4.0);
 }

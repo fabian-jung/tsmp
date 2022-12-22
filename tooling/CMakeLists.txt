@@ -1,4 +1,4 @@
-set(introspect_lib_src
+add_library(introspect_lib STATIC 
     data/aggregator.cpp
     data/types.cpp
     data/prefix_splitter.cpp
@@ -6,9 +6,7 @@ set(introspect_lib_src
     data/enum_splitter.cpp
     engine/code_generator.cpp
     engine/utils.cpp
- )
-
-add_library(introspect_lib STATIC ${introspect_lib_src})
+)
 target_link_libraries(introspect_lib PUBLIC LibClangCpp fmt::fmt)
 target_compile_features(introspect_lib PUBLIC cxx_std_17)
 target_include_directories(introspect_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

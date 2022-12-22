@@ -53,7 +53,7 @@ using SharedPtr = std::shared_ptr<T>;
 
 struct IdentityFunctor {
     decltype(auto) operator()(auto base,std::string_view,auto&&... args) {
-        return base(std::forward<decltype(args)>(args)...);
+        return (base(std::forward<decltype(args)>(args)...));
     }
 };
 
@@ -61,7 +61,7 @@ struct IdentityFunctor {
 
 template <class T, class Functor = detail::IdentityFunctor>
 struct value_proxy : public proxy<T, detail::Identity, detail::IdentityAccessor, Functor> {
-    value_proxy(T value, Functor f = {}) :
+    value_proxy(T value = {}, Functor f = {}) :
         proxy<T, detail::Identity, detail::IdentityAccessor, Functor>{ std::move(value), detail::IdentityAccessor{}, std::move(f) }
     {}
 

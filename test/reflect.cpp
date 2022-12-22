@@ -41,13 +41,13 @@ TEST_CASE("shared attributes reflection test", "[core][unit]") {
     REQUIRE(foo.*(foo_i.ptr) == 42);
     REQUIRE(std::string(foo_i.name) == "i");
 
-    const auto bar_i = std::get<0>(bar_fields);
+    const auto bar_i = std::get<1>(bar_fields);
     using bar_i_t = typename decltype(bar_i)::value_type;
     static_assert(std::is_same_v<bar_i_t, int>, "value type is not correct");
     REQUIRE(bar.*(bar_i.ptr) == 42);
     REQUIRE(std::string(bar_i.name) == "i");
 
-    const auto bar_f = std::get<1>(bar_fields);
+    const auto bar_f = std::get<0>(bar_fields);
     using bar_f_t = typename decltype(bar_f)::value_type;
     static_assert(std::is_same_v<bar_f_t, float>, "value type is not correct");
     REQUIRE(bar.*(bar_f.ptr) == Catch::Approx(3.1415f));
@@ -69,10 +69,10 @@ TEST_CASE("member function reflection test", "[core][unit]") {
     constexpr auto functions = tsmp::reflect<foo_t>::functions();
     static_assert(std::tuple_size_v<decltype(functions)> >= 2, "foo_t should have functions");
 
-    const auto print = std::get<0>(functions);
+    const auto print = std::get<1>(functions);
     REQUIRE(std::string(print.name) == "print");
 
-    const auto add = std::get<1>(functions);
+    const auto add = std::get<0>(functions);
     REQUIRE(std::string(add.name) == "add");
     REQUIRE((foo.*(add.ptr))(2, 2) == 4);
 }
