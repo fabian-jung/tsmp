@@ -49,6 +49,7 @@ void reflection_aggregator_t::generate(const std::string& path) const {
     fmt::print(output_file, "#include <tuple>\n");
     fmt::print(output_file, "#include <tsmp/reflect.hpp>\n");
     fmt::print(output_file, "#include <tsmp/proxy.hpp>\n");
+    fmt::print(output_file, "{}\n", splitter.forward_declaration());
     fmt::print(output_file, "namespace tsmp {{\n");
     fmt::print(output_file, "{}\n", splitter.render());
     fmt::print(output_file, "{}\n", enum_splitter.render());
