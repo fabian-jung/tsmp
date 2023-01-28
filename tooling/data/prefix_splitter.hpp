@@ -19,6 +19,7 @@ public:
     
     static std::string strip_special_chars(std::string input);
 
+    std::string forward_declaration() const;
     std::string render() const;
 
 private:
