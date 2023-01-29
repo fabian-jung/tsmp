@@ -14,7 +14,9 @@ public:
     void add_proxy_decl(record_decl_t decl);
     void add_enum_decl(enum_decl_t decl);
 
-    void generate(const std::string& path) const;
+    std::vector<record_decl_t> records() const;
+    std::vector<std::string> trivial_types() const;
+    std::vector<enum_decl_t> enums() const;
     
 private:
     std::vector<record_decl_t> m_records;

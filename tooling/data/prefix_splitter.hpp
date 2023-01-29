@@ -1,10 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include <fmt/core.h>
-#include <fmt/ranges.h>
-#include <algorithm>
-#include <iterator>
+
 namespace data {
 
 class prefix_splitter_t {
@@ -13,17 +10,12 @@ public:
 
     void add_record(record_decl_t record);
 
-    const std::vector<field_decl_t>& fields() const;
-    const std::vector<function_decl_t>& functions() const;
-    const std::vector<record_decl_t>& records() const;
-    
-    static std::string strip_special_chars(std::string input);
-
-    std::string forward_declaration() const;
-    std::string render() const;
+    std::vector<field_decl_t> fields() const;
+    std::vector<function_decl_t> functions() const;
+    std::vector<record_decl_t> records() const;
+    std::vector<std::string> trivial_types() const;
 
 private:
-
     bool has_field(const field_decl_t& field, const std::vector<field_decl_t>& field_list) const;
     bool has_function(const function_decl_t& function, const std::vector<function_decl_t>& function_list) const;
     void add_field(const field_decl_t& field);

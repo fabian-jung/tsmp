@@ -186,7 +186,7 @@ TEST_CASE("complex variant json test", "[core][unit]") {
         tsmp::immutable_t<enum_t::bar> type;
     };
 
-    using adapter = tsmp::enum_value_adapter<enum_t>;
+    // using adapter = tsmp::enum_value_adapter<enum_t>;
 
     using variant = std::variant<foo_t, bar_t>;
     REQUIRE(tsmp::to_json(variant(foo_t{})) == "{\"type\":\"foo\"}");
