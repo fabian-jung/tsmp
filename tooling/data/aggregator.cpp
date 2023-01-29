@@ -40,19 +40,16 @@ void reflection_aggregator_t::add_enum_decl(enum_decl_t decl) {
     m_enums.emplace_back(std::move(decl));
 }
 
-void reflection_aggregator_t::generate(const std::string& path) const {
-    std::ofstream output_file(path);
-    prefix_splitter_t splitter(m_records, m_trivial_types);
-    enum_splitter_t enum_splitter(m_enums);
-
-    fmt::print(output_file, "#pragma once\n");
-    fmt::print(output_file, "#include <tuple>\n");
-    fmt::print(output_file, "#include <tsmp/reflect.hpp>\n");
-    fmt::print(output_file, "#include <tsmp/proxy.hpp>\n");
-    fmt::print(output_file, "{}\n", splitter.forward_declaration());
-    fmt::print(output_file, "namespace tsmp {{\n");
-    fmt::print(output_file, "{}\n", splitter.render());
-    fmt::print(output_file, "{}\n", enum_splitter.render());
-    fmt::print(output_file, "}}\n");
+std::vector<record_decl_t> reflection_aggregator_t::records() const {
+    return m_records;
 }
+
+std::vector<std::string> reflection_aggregator_t::trivial_types() const {
+    return m_trivial_types;
+}
+
+std::vector<enum_decl_t> reflection_aggregator_t::enums() const {
+    return m_enums;
+}
+
 }

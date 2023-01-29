@@ -2,6 +2,7 @@ set(introspect_lib_src
     data/aggregator.cpp
     data/types.cpp
     data/prefix_splitter.cpp
+    data/renderer.cpp
     data/enum_splitter.cpp
     engine/code_generator.cpp
     engine/utils.cpp

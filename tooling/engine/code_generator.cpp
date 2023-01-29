@@ -32,100 +32,108 @@ void reflect_enum(const EnumDecl* decl, data::reflection_aggregator_t& aggregato
 }
 
 
-std::string get_qualified_name(const clang::NamespaceDecl* decl) {
+std::string get_qualified_namespace(const clang::NamespaceDecl* decl) {
+    if(!decl) return "";
     std::string name = decl->getName().str();
     if(decl->isInlineNamespace()) {
         name = "inline "+name;
     }
-    if(decl->getParent()->getDeclKind() == Decl::Kind::TranslationUnit) {
-        return name;
+    if(auto parent = decl->getParent()) {
+        if(parent->getDeclKind() == Decl::Kind::TranslationUnit) {
+            return name;
+        }
     }
-    return get_qualified_name(static_cast<const clang::NamespaceDecl*>(decl->getParent()))+"::"+name;
+    return get_qualified_namespace(static_cast<const clang::NamespaceDecl*>(decl->getParent()))+"::"+name;
 }
 
-bool isStdNamespace(const DeclContext* ns) {
+bool is_std_namespace(const DeclContext* ns) {
+    if(!ns) return false;
     if(ns->isStdNamespace()) {
         return true;
     }
     if(ns->getDeclKind()==Decl::Kind::Namespace) {
-        return isStdNamespace(ns->getParent());
+        return is_std_namespace(ns->getParent());
     }
     return false;
 }
 
-void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator) {
-    if(decl == nullptr) return;
-    data::record_decl_t record_decl;
-    record_decl.name = decl->getName().str();
+bool is_nested_type(const CXXRecordDecl* decl) {
     if(auto parent = decl->getParent()) {
-        if(parent->isNamespace()) {
-            record_decl.qualified_namespace = get_qualified_name(static_cast<const clang::NamespaceDecl*>(parent));
-            //TODO check: static_cast<const clang::NamespaceDecl*>(parent)->isInlineNamespace()
-            record_decl.is_std_type = isStdNamespace(parent);
-            record_decl.is_forward_declareable = true;
-        } else if(parent->getDeclKind() == clang::Decl::Kind::TranslationUnit) {
-            // Global type
-            record_decl.is_forward_declareable = true;
-        } else if(parent->getDeclKind() == clang::Decl::Kind::CXXRecord) {
-            record_decl.is_nested_type = true;
-        }
+        return parent->getDeclKind() == clang::Decl::Kind::CXXRecord;
     }
+    return false;
+}
 
+bool is_forward_declarable(const CXXRecordDecl* decl) {
     const auto* specialization = dynamic_cast<const ClassTemplateSpecializationDecl*>(decl);
     if(specialization) {
-        llvm::outs() << record_decl.name << "\n";
+        // template specializations are currently not forward declarable, as they would require to also forward declare the
+        // the template arguments, which is not currently implemented, but may be at a later point in time.
+        return false;
+    }
+    if(auto parent = decl->getParent()) {
+        if(parent->isNamespace() || parent->getDeclKind() == clang::Decl::Kind::TranslationUnit) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string template_argument_to_string(const clang::TemplateArgument& argument) {
+    std::string result;
+    llvm::raw_string_ostream s(result);
+    LangOptions LO; // FIXME! see also TemplateName::dump().
+    LO.CPlusPlus = true;
+    LO.Bool = true;
+    argument.print(LO, s, false);
+    return result;
+}
+
+std::vector<data::template_argument_t> template_argument_analysis(const CXXRecordDecl* decl) {
+    std::vector<data::template_argument_t> result;
+    const auto* specialization = dynamic_cast<const ClassTemplateSpecializationDecl*>(decl);
+    if(specialization) {
         const auto params = specialization->getTemplateArgs().asArray();
         const auto args = specialization->getSpecializedTemplate()->getTemplateParameters()->asArray();
         if(args.size() != params.size()) {
-            fmt::print(std::cerr, "Not all template parameters are specified. This indicates that reflect<{0}> has been called, but {0} is not fully specialized.", record_decl.name);
+            fmt::print(std::cerr, "Not all template parameters are specified. This indicates that reflect has been called, but T is not fully specialized.");
         }
         for(int i = 0; i < args.size(); ++i) {
             auto arg = args[i];
             auto param = params[i];
-
-            std::string value;
-            llvm::raw_string_ostream s(value);
-            LangOptions LO; // FIXME! see also TemplateName::dump().
-            LO.CPlusPlus = true;
-            LO.Bool = true;
-            param.print(LO, s, false);
+            const auto value = template_argument_to_string(param);
 
             if(arg->isTemplateParameterPack())  {
                 fmt::print("Template argument of template parameter pack type. Fall back to duck-type identification. May be implemented later.\n");
-                record_decl.is_forward_declareable = false;
             }
             if(const auto* type_decl = dynamic_cast<TemplateTypeParmDecl*>(arg)) {
                 fmt::print("type template arg. {} {} {}\n", "typename", arg->getName().str(), value);
-                record_decl.template_arguments.emplace_back(data::template_argument_t{ "typename", arg->getName().str(), value });
+                result.emplace_back(data::template_argument_t{ "typename", arg->getName().str(), value });
                 // reflect_type(dynamic_cast<const CXXRecordDecl*>(arg), aggregator);
-                record_decl.is_forward_declareable = false; // Would require arg to forward declared transitively
             } else if(const auto* value_decl = dynamic_cast<NonTypeTemplateParmDecl*>(arg)) {
                 fmt::print("value template arg: {} {} {}\n", value_decl->getType().getAsString(), value_decl->getName().str(), value);
                 if(!value_decl->getType()->isBuiltinType()) {
                     fmt::print("Template argument is not of a builtin type. Fall back to duck-type identification.\n");
-                    record_decl.is_forward_declareable = false;
                 }
-                record_decl.template_arguments.emplace_back(data::template_argument_t{ value_decl->getType().getAsString(), arg->getName().str(), value });
+                result.emplace_back(data::template_argument_t{ value_decl->getType().getAsString(), arg->getName().str(), value });
             } else {
                 fmt::print("Template argument type not implemented.\n");
             }
         }
     }
+    return result;
+}
 
-    record_decl.is_struct = decl->isStruct();
-    fmt::print(
-        "member analysis for {}{} {} in {}\n",
-        record_decl.is_nested_type ? "nested ": "",
-        record_decl.is_struct ? "struct" : "class",
-        record_decl.name,
-        record_decl.qualified_namespace
-    );
+void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator);
+
+std::vector<data::field_decl_t> field_analysis(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator, bool is_std_type) {
+    std::vector<data::field_decl_t> result;
     for(const auto& field : decl->fields()) {
         const auto access = field->getAccess();
         const auto type = field->getType();
         const auto builtin = type.getTypePtr()->isBuiltinType();
         auto name = field->getNameAsString();
-        if(!record_decl.is_std_type) {
+        if(!is_std_type) {
             if(type->isEnumeralType()) {
                 reflect_enum(dynamic_cast<const EnumDecl*>(type->getAsTagDecl()), aggregator);
             }
@@ -139,19 +147,52 @@ void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggr
             continue;
         }
         if(name.size() > 0) {
-            record_decl.fields.emplace_back(data::field_decl_t{std::move(name)});
+            result.emplace_back(data::field_decl_t{std::move(name)});
         }
     }
+    return result;
+}
+
+std::vector<data::function_decl_t> method_analysis(const CXXRecordDecl* decl, const std::string& decl_name) {
+    std::vector<data::function_decl_t> result;
     for(const auto& method : decl->methods()) {
         auto name = method->getNameAsString();
         if(
             name.size() > 0 &&
-            name != record_decl.name && // Addresses of constructors can not be taken, therefore we can not reflect them
+            name != decl_name && // Addresses of constructors can not be taken, therefore we can not reflect them
             name.at(0) != '~' // Addresses of constructors can not be taken, therefore we can not reflect them
         ) {
-            record_decl.functions.emplace_back(data::function_decl_t{std::move(name)});
+            result.emplace_back(data::function_decl_t{std::move(name)});
         }
     }
+    return result;
+}
+
+void reflect_type(const CXXRecordDecl* decl, data::reflection_aggregator_t& aggregator) {
+    if(decl == nullptr) return;
+    data::record_decl_t record_decl;
+    const auto* parent = decl->getParent();
+    record_decl.name = decl->getName().str();
+    record_decl.is_struct = decl->isStruct();
+    if(parent->isNamespace()) {
+        record_decl.qualified_namespace = get_qualified_namespace(static_cast<const clang::NamespaceDecl*>(parent));
+    }
+    record_decl.is_forward_declarable = is_forward_declarable(decl);
+    record_decl.is_nested_type = is_nested_type(decl);
+    record_decl.is_std_type = is_std_namespace(parent);
+    record_decl.template_arguments = template_argument_analysis(decl);
+
+    fmt::print(
+        "member analysis for {}{} {} in {}\n",
+        record_decl.is_nested_type ? "nested ": "",
+        record_decl.is_struct ? "struct" : "class",
+        record_decl.name,
+        record_decl.qualified_namespace
+    );
+    
+    record_decl.fields = field_analysis(decl, aggregator, record_decl.is_std_type);
+    record_decl.functions = method_analysis(decl, record_decl.name);
+    
     aggregator.add_record_decl(std::move(record_decl));
 }
 

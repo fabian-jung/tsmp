@@ -1,24 +1,12 @@
-#include <algorithm>
-#include <clang/Basic/LLVM.h>
-#include <clang/Tooling/ArgumentsAdjusters.h>
-#include <clang/Tooling/Tooling.h>
-#include <iterator>
-#include <llvm/Support/CommandLine.h>
-#include <clang/Tooling/CommonOptionsParser.h>
+#include "data/aggregator.hpp"
+#include "data/renderer.hpp"
 #include "engine/utils.h"
 #include "engine/code_generator.hpp"
 
-#include <iostream>
-#include <fmt/ostream.h>
-#include <fmt/format.h>
-#include <fstream>
-#include <filesystem>
-#include <sstream>
-#include <string>
-#include <vector>
+#include "fmt/ostream.h"
 
-#include <clang/Parse/ParseAST.h>
-#include <clang/Parse/Parser.h>
+#include <iostream>
+#include <filesystem>
 
 struct tsmp_argument_adjuster_t {
     std::string output_file;
@@ -35,7 +23,6 @@ struct tsmp_argument_adjuster_t {
         return "-I"+path;
     }
 };
-
 
 int main(int argc, const char* argv[]) {
     fmt::print("called ./introspect {}\n", fmt::join(std::vector<const char*>{argv, argv+argc}, " "));
@@ -66,7 +53,8 @@ int main(int argc, const char* argv[]) {
     
 
     fmt::print("Write to {}.\n ", output_file);
-    aggregator.generate(output_file);
+    data::renderer_t renderer(output_file);
+    renderer.render(aggregator);
 
     return 0;
 }
