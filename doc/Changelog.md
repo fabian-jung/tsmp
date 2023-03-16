@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.7
+
+- Refactor tooling backend
+
+
 ## 1.0.6
 
 Bugfix that prevented proxys for virtual classes on clang.
