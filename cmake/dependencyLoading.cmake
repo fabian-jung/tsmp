@@ -33,7 +33,7 @@ macro(LoadDependencies)
             FetchContent_Declare(
                 tsmpCatch2
                 GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-                GIT_TAG        v3.1.0
+                GIT_TAG        v3.3.2
             )
             FetchContent_MakeAvailable(nlohmann_json tsmpCatch2 fmt range-v3)
             list(APPEND CMAKE_MODULE_PATH "${tsmpCatch2_SOURCE_DIR}/extras")
