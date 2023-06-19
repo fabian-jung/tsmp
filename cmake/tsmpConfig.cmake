@@ -43,15 +43,16 @@ function(enable_reflection target)
     )
 
     add_custom_command(
-        OUTPUT ${CMAKE_BINARY_DIR}/tsmp/${target}/reflection.hpp
+        OUTPUT
+            ${CMAKE_BINARY_DIR}/tsmp/${target}/reflection.hpp
+        BYPRODUCTS
+            ${CMAKE_BINARY_DIR}/tsmp/${target}/build.log
+            ${CMAKE_BINARY_DIR}/tsmp/${target}/error.log
         COMMAND ${INTROSPECT_TOOL} ${RELATIVE_SOURCES} ./tsmp/${target}/reflection.hpp 2> ./tsmp/${target}/error.log 1> ./tsmp/${target}/build.log
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS ${TARGET_SOURCES}
         DEPENDS ${target}_builtin_includes
         VERBATIM
-        BYPRODUCTS 
-            ./tsmp/${target}/error.log 
-            ./tsmp/${target}/build.log
     )
     add_custom_target(${target}_header
         DEPENDS ${CMAKE_BINARY_DIR}/tsmp/${target}/reflection.hpp
