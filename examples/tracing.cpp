@@ -1,13 +1,16 @@
-#include "tsmp/introspect.hpp"
-#include "tsmp/reflect.hpp"
 #include <string_view>
-#include <tsmp/proxy.hpp>
 #include <fmt/format.h>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include <map>
+#include <functional>
 
 #include <chrono>
+
+#include "tsmp/proxy.hpp"
+#include "tsmp/introspect.hpp"
+#include "tsmp/reflect.hpp"
 
 struct entry_t {
     std::chrono::duration<double> duration;
@@ -54,9 +57,9 @@ struct tracing_functor_t {
     trace_data_t data;
 
     template <class... Args>
-    decltype(auto) operator()(auto fn, const char* name, Args&&... args) {
+    decltype(auto) operator()(auto& fn, const char* name, Args&&... args) {
         const auto collector = data.collect(name);
-        return (fn(std::forward<Args>(args)...));
+        return std::invoke(fn, std::forward<Args>(args)...);
     }
 };
 

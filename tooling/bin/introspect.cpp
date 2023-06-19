@@ -1,7 +1,7 @@
 #include "data/aggregator.hpp"
 #include "data/renderer.hpp"
 #include "engine/utils.h"
-#include "engine/code_generator.hpp"
+#include "engine/ast_traversal_tool.hpp"
 
 #include "fmt/ostream.h"
 
@@ -27,11 +27,11 @@ struct tsmp_argument_adjuster_t {
 int main(int argc, const char* argv[]) {
     fmt::print("called ./introspect {}\n", fmt::join(std::vector<const char*>{argv, argv+argc}, " "));
     if(argc<3) {
-        fmt::print(std::cerr, "Not enought parameters supplied. Usage is ./introspect_tool <input file> [<additional input files>] <output file>\n");
+        fmt::print(std::cerr, "Not enough parameters supplied. Usage is ./introspect_tool <input file> [<additional input files>] <header>\n");
         return 1;
     }
 
-    std::string output_file(argv[argc-1]);
+    std::string header(argv[argc-1]);
 
     std::string error;
     const auto compilation_database = clang::tooling::CompilationDatabase::loadFromDirectory(std::filesystem::current_path().native(),  error);
@@ -40,21 +40,21 @@ int main(int argc, const char* argv[]) {
         fmt::print(std::cerr, "Compilation failed with error \"{}\". Maybe compilation database not found under {}\n", error, current_path);
     }
 
-    const auto dir = std::filesystem::path(output_file).remove_filename();
-    if(!std::filesystem::exists(dir)) {
-        fmt::print(std::cerr, "Could not generate output. Directory {} requested for output does not exist.\n", dir.string());
+    const auto header_dir = std::filesystem::path(header).remove_filename();
+    if(!std::filesystem::exists(header_dir)) {
+        fmt::print(std::cerr, "Could not generate output. Directory {} requested for output does not exist.\n", header_dir.string());
         return 1;
     }
     
     clang::tooling::ClangTool tool(*compilation_database, std::vector<std::string>(argv+1, argv+argc-1));
-    tool.appendArgumentsAdjuster(tsmp_argument_adjuster_t{output_file});
+    tool.appendArgumentsAdjuster(tsmp_argument_adjuster_t{header});
     tool.appendArgumentsAdjuster(clang::tooling::getClangSyntaxOnlyAdjuster());
-    const auto aggregator = generate_code_for_target(tool);
-    
+    engine::ast_traversal_tool_t traversal_tool;
+    traversal_tool.run(tool);
 
-    fmt::print("Write to {}.\n ", output_file);
-    data::renderer_t renderer(output_file);
-    renderer.render(aggregator);
+    fmt::print("Write to {}.\n", header);
+    data::renderer_t renderer(header);
+    renderer.render(traversal_tool.state());
 
     return 0;
 }

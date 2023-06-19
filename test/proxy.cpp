@@ -19,8 +19,7 @@ struct interface_t {
     virtual ~interface_t() = default;
 
     virtual std::string print() const = 0;
-
-
+    
 private:
     void private_function() {}
 };
@@ -38,32 +37,33 @@ struct bar_impl_t : public interface_t {
 };
 
 TEST_CASE("value proxy test", "[unit]") {
-    tsmp::value_proxy foo { foo_t{}, [](auto base, const std::string_view, auto&&... args){
-        return base(std::forward<decltype(args)>(args)...);
+    tsmp::value_proxy foo { foo_t{}, [](auto& base, const std::string_view, auto&&... args){
+        return std::invoke(base, std::forward<decltype(args)>(args)...);
     }};
 
-    REQUIRE(foo.a == 0);
+    #warning todo access to members ? 
+    REQUIRE(foo.accessor.value.a == 0);
     REQUIRE(foo.add(5,2) == 7);
     REQUIRE(foo.inc().a == 1);
 
     SECTION("value can be move constructed") {
         auto foo2 { std::move(foo) };
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.value.a == 1);
     }
 
     SECTION("value can be move assigned") {
         auto foo2 = std::move(foo);
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.value.a == 1);
     }
 
     SECTION("value can be copy constructed") {
         auto foo2 { foo };
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.value.a == 1);
     }
 
     SECTION("value can be copy assigned") {
         auto foo2 = foo;
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.value.a == 1);
     }
 }
 
@@ -99,58 +99,58 @@ TEST_CASE("polymorphic_value test", "[unit]") {
 
 TEST_CASE("unique proxy test", "[unit]") {
     tsmp::unique_proxy foo { foo_t{}, [](auto base, const std::string_view, auto&&... args){
-        return base(std::forward<decltype(args)>(args)...);
+        return std::invoke(base, std::forward<decltype(args)>(args)...);
     }};
 
-    REQUIRE(foo.a == 0);
+    REQUIRE(foo.accessor.ptr->a == 0);
     REQUIRE(foo.add(5,2) == 7);
     REQUIRE(foo.inc().a == 1);
 
     SECTION("value can be move constructed") {
         auto foo2 { std::move(foo) };
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.ptr->a == 1);
     }
 
     SECTION("value can be move assigned") {
         auto foo2 = std::move(foo);
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.ptr->a == 1);
     }
 }
 
 TEST_CASE("shared proxy test", "[unit]") {
     tsmp::shared_proxy foo { foo_t{}, [](auto base, const std::string_view, auto&&... args){
-        return base(std::forward<decltype(args)>(args)...);
+        return std::invoke(base, std::forward<decltype(args)>(args)...);
     }};
 
-    REQUIRE(foo.a == 0);
+    REQUIRE(foo.accessor.ptr->a == 0);
     REQUIRE(foo.add(5,2) == 7);
     REQUIRE(foo.inc().a == 1);
 
     SECTION("value can be move constructed") {
         auto foo2 { std::move(foo) };
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.ptr->a == 1);
     }
 
     SECTION("value can be move assigned") {
         auto foo2 = std::move(foo);
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.ptr->a == 1);
     }
 
     SECTION("value can be copy constructed") {
         auto foo2 { foo };
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.ptr->a == 1);
     }
 
     SECTION("value can be copy assigned") {
         auto foo2 = foo;
-        REQUIRE(foo2.a == 1);
+        REQUIRE(foo2.accessor.ptr->a == 1);
     }
 }
 
 TEST_CASE("proxy returning reference test", "[unit]") {
-    auto proxy = tsmp::value_proxy{ std::array<int, 5>{} };
+    auto proxy = tsmp::value_proxy{ std::array<int, 5>{}, tsmp::identity{} };
     proxy.front() = 4;
-    REQUIRE(proxy.__tsmp_base.front() == 4);
+    REQUIRE(proxy.accessor.value.front() == 4);
 }
 
 struct overloaded_foo_t {
@@ -167,7 +167,7 @@ struct overloaded_foo_t {
     }
 };
 TEST_CASE("proxy returning from overloaded function test", "[unit]") {
-    auto proxy = tsmp::value_proxy{ overloaded_foo_t{} };
+    auto proxy = tsmp::value_proxy{ overloaded_foo_t{}, tsmp::identity{} };
     REQUIRE(proxy.identity(4) == 4);
     REQUIRE(proxy.identity("4") == "4");
     REQUIRE(proxy.identity(4.0) == 4.0);

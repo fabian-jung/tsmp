@@ -9,12 +9,12 @@ namespace data {
 
 class renderer_t {
 public:
-    renderer_t(std::string output_file);
+    renderer_t(std::string header);
 
     void render(const data::reflection_aggregator_t& aggregator);
 
 private:
-    std::ofstream output_file;
+    std::ofstream header;
 };
 
 }

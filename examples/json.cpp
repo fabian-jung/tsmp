@@ -43,18 +43,20 @@ std::string to_json(const auto& value) {
     }
 }
 
+struct foo_t {
+    int i { 42 };
+    float f { 1337.0f };
+    const char* s = "Hello World!";
+    struct bar_t {
+        int i { 0 };
+    } bar;
+    #warning todo
+    std::vector<int> numbers { 1, 2, 3, 4 };
+    // std::array<int, 4> numbers { 1, 2, 3, 4 };
+};
+
 int main(int, char*[]) {
-
-    struct foo_t {
-        int i { 42 };
-        float f { 1337.0f };
-        const char* s = "Hello World!";
-        struct bar_t {
-            int i { 0 };
-        } bar;
-        std::array<int, 4> numbers { 1, 2, 3, 4 };
-    } foo;
-
+    foo_t foo;
     fmt::print("{}\n", to_json(foo));
 
     return 0;
