@@ -22,13 +22,13 @@ TEST_CASE("arithmetic json test", "[core][unit]") {
     REQUIRE(tsmp::try_from_json<std::uint32_t>("\"abc'\"") == std::nullopt);
 }
 
-TEST_CASE("enum json test", "[core][unit]") {
-    enum class enum_t {
-        value1,
-        value2,
-        value3
-    };
+enum class enum_t {
+    value1,
+    value2,
+    value3
+};
 
+TEST_CASE("enum json test", "[core][unit]") {
     REQUIRE(tsmp::to_json(enum_t::value1) == "\"value1\"");
     REQUIRE(tsmp::to_json(enum_t::value2) == "\"value2\"");
     REQUIRE(tsmp::to_json(enum_t::value3) == "\"value3\"");
@@ -96,6 +96,11 @@ TEST_CASE("range json test", "[core][unit]") {
     REQUIRE_THROWS(tsmp::from_json<std::vector<int>>("\"1\""));
 }
 
+struct variant_test_specific_struct {
+    int unique_member;
+    auto operator<=>(const variant_test_specific_struct&) const noexcept = default;
+};
+
 TEST_CASE("variant json test", "[core][unit]") {
     using variant = std::variant<int, float, std::string>;
     REQUIRE(tsmp::to_json(variant("test")) == "\"test\"");
@@ -114,11 +119,6 @@ TEST_CASE("variant json test", "[core][unit]") {
     REQUIRE_THROWS(tsmp::from_json<variant>("{}"));
     REQUIRE_THROWS(tsmp::from_json<variant>("[5]"));
 
-    struct variant_test_specific_struct {
-        int unique_member;
-        auto operator<=>(const variant_test_specific_struct&) const noexcept = default;
-    };
-
     using variant_t = std::variant<tsmp::immutable_t<42>, std::string, variant_test_specific_struct>;
     const auto variant_struct = tsmp::from_json<variant_t>("{\"unique_member\":42}");
     REQUIRE(std::get<variant_test_specific_struct>(variant_struct) == variant_test_specific_struct{42});
@@ -127,12 +127,13 @@ TEST_CASE("variant json test", "[core][unit]") {
     REQUIRE(std::get<tsmp::immutable_t<42>>(variant_immutable) == 42);
 }
 
+struct foo_t {
+    int i;
+    std::string str;
+    auto operator<=>(const foo_t&) const noexcept = default;
+};
+
 TEST_CASE("struct json test", "[core][unit]") {
-    struct foo_t {
-        int i;
-        std::string str;
-        auto operator<=>(const foo_t&) const noexcept = default;
-    };
     const foo_t foo { 42, "test" };
     
     REQUIRE(tsmp::to_json(foo) == "{\"i\":42,\"str\":\"test\"}");
@@ -144,21 +145,22 @@ TEST_CASE("struct json test", "[core][unit]") {
     REQUIRE(tsmp::try_from_json<foo_t>("{\"i\":42}") == std::nullopt);
 }
 
+struct bar_t {
+    int i;
+    std::optional<std::string> str;
+    auto operator<=>(const bar_t&) const noexcept = default;
+};
+
 TEST_CASE("struct with optional json test", "[core][unit]") {
-    struct foo_t {
-        int i;
-        std::optional<std::string> str;
-        auto operator<=>(const foo_t&) const noexcept = default;
-    };
-    const foo_t foo { 42, "test" };
-    const foo_t foo2 { 42, std::nullopt };
+    const bar_t foo { 42, "test" };
+    const bar_t foo2 { 42, std::nullopt };
     
     REQUIRE(tsmp::to_json(foo) == "{\"i\":42,\"str\":\"test\"}");
-    REQUIRE(tsmp::from_json<foo_t>("{\"i\":42,\"str\":\"test\"}") == foo);
-    REQUIRE(tsmp::from_json<foo_t>("{\"i\":42 }") == foo2);
+    REQUIRE(tsmp::from_json<bar_t>("{\"i\":42,\"str\":\"test\"}") == foo);
+    REQUIRE(tsmp::from_json<bar_t>("{\"i\":42 }") == foo2);
 
-    REQUIRE(tsmp::try_from_json<foo_t>("{\"i\":42,\"str\":\"test\"}") == foo);
-    REQUIRE(tsmp::try_from_json<foo_t>("{\"i\":42 }") == foo2);
+    REQUIRE(tsmp::try_from_json<bar_t>("{\"i\":42,\"str\":\"test\"}") == foo);
+    REQUIRE(tsmp::try_from_json<bar_t>("{\"i\":42 }") == foo2);
 }
 
 TEST_CASE("validator json test", "[core][unit]") {
@@ -169,28 +171,24 @@ TEST_CASE("validator json test", "[core][unit]") {
     REQUIRE(tsmp::try_from_json<std::uint32_t>("42", not_fourtytwo) == std::nullopt);
 }
 
+struct variant_foo_t {
+    tsmp::immutable_t<enum_t::foo> type;
+};
+
+struct variant_bar_t {
+    tsmp::immutable_t<enum_t::bar> type;
+};
+
 TEST_CASE("complex variant json test", "[core][unit]") {
-    enum class enum_t {
-        foo,
-        bar
-    };
     using small_t = std::variant<tsmp::immutable_t<enum_t::foo>, tsmp::immutable_t<enum_t::bar>>;
     REQUIRE_NOTHROW(tsmp::from_json<small_t>("\"foo\""));
     REQUIRE_NOTHROW(tsmp::from_json<small_t>("\"bar\""));
 
-    struct foo_t {
-        tsmp::immutable_t<enum_t::foo> type;
-    };
-
-    struct bar_t {
-        tsmp::immutable_t<enum_t::bar> type;
-    };
-
     // using adapter = tsmp::enum_value_adapter<enum_t>;
 
-    using variant = std::variant<foo_t, bar_t>;
+    using variant = std::variant<variant_foo_t, variant_bar_t>;
     REQUIRE(tsmp::to_json(variant(foo_t{})) == "{\"type\":\"foo\"}");
     REQUIRE(tsmp::to_json(variant(bar_t{})) == "{\"type\":\"bar\"}");
-    REQUIRE_NOTHROW(std::get<foo_t>(tsmp::from_json<variant>("{\"type\":\"foo\"}")));
-    REQUIRE_NOTHROW(std::get<bar_t>(tsmp::from_json<variant>("{\"type\":\"bar\"}")));
+    REQUIRE_NOTHROW(std::get<variant_foo_t>(tsmp::from_json<variant>("{\"type\":\"foo\"}")));
+    REQUIRE_NOTHROW(std::get<variant_bar_t>(tsmp::from_json<variant>("{\"type\":\"bar\"}")));
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "tsmp/introspect.hpp"
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
@@ -7,8 +8,11 @@
 
 namespace tsmp {
 
-template <class T, template<class> class Container, class Accessor, class Functor>
-struct proxy;
+template <class GlobalNamespaceHelper, class T, class Accessor, class Functor, class... Base>
+struct proxy_impl;
+
+template <class T, class Accessor, class Functor, class... Base>
+using proxy = proxy_impl<global_t, T, Accessor, Functor, Base...>;
 
 }
 
@@ -17,8 +21,8 @@ struct proxy;
 #else 
 namespace tsmp {
 
-template <class T, template<class> class Container, class Accessor, class Functor>
-struct proxy : public T {
+template <class T, class Accessor, class Functor, class... Base>
+struct proxy : public Base... {
     template <class... Args>
     proxy(Args&&...) {}
 };
@@ -26,43 +30,37 @@ struct proxy : public T {
 }
 #endif
 
+
 namespace tsmp {
 
-namespace detail {
-
 template <class T>
-using Identity = T;
-
-struct IdentityAccessor {
-    decltype(auto) operator()(auto& value) const {
-        return value;
+struct ThisAccessor {
+    decltype(auto) operator()(auto* proxy) const {
+        return proxy;
     }
 };
 
-struct DereferenceAccessor {
-    decltype(auto) operator()(auto& value) const {
-        return *value;
-    }
-};
+template <class T, class Functor>
+using virtual_proxy = proxy<T, ThisAccessor<T>, Functor, T>;
 
 template <class T>
-using UniquePtr = std::unique_ptr<T>;
+struct value_accessor_t {
 
-template <class T>
-using SharedPtr = std::shared_ptr<T>;
+    value_accessor_t(T value) :
+        value(std::move(value))
+    {}
 
-struct IdentityFunctor {
-    decltype(auto) operator()(auto base,std::string_view,auto&&... args) {
-        return (base(std::forward<decltype(args)>(args)...));
+    T* operator()(auto*) {
+        return &value;
     }
+
+    T value;
 };
 
-}
-
-template <class T, class Functor = detail::IdentityFunctor>
-struct value_proxy : public proxy<T, detail::Identity, detail::IdentityAccessor, Functor> {
+template <class T, class Functor>
+struct value_proxy : public proxy<T, value_accessor_t<T>, Functor> {
     value_proxy(T value = {}, Functor f = {}) :
-        proxy<T, detail::Identity, detail::IdentityAccessor, Functor>{ std::move(value), detail::IdentityAccessor{}, std::move(f) }
+        proxy<T, value_accessor_t<T>, Functor>{ value_accessor_t<T>{std::move(value)}, std::move(f) }
     {}
 
     value_proxy(const value_proxy&) = default;
@@ -74,41 +72,102 @@ struct value_proxy : public proxy<T, detail::Identity, detail::IdentityAccessor,
     ~value_proxy() = default;
 };
 
-template <class T, class Functor = detail::IdentityFunctor> requires std::has_virtual_destructor_v<T>
-struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> {
 
+template <class T>
+struct unique_accessor_t {
+
+    template<std::derived_from<T> D>
+    unique_accessor_t(D&& value) :
+        ptr(std::unique_ptr<T>(new D{ std::move(value) }))
+    {}
+
+    template<std::derived_from<T> D>
+    unique_accessor_t(const D& value) :
+        ptr(std::unique_ptr<T>(new D{ value }))
+    {}
+
+    decltype(auto) operator()(auto*) const {
+        return ptr.get();
+    }
+
+    std::unique_ptr<T> ptr;
+};
+
+template <class T, class Functor>
+struct unique_proxy : public proxy<T, unique_accessor_t<T>, Functor> {
+    unique_proxy(T value = {}, Functor functor = {}) :
+        proxy<T, unique_accessor_t<T>, Functor>(unique_accessor_t<T>(std::move(value)), std::move(functor))
+    {}
+};
+
+template <class T, class Functor>
+unique_proxy(T, Functor) -> unique_proxy<T, Functor>;
+
+template <class T>
+struct shared_accessor_t {
+
+    template<std::derived_from<T> D>
+    shared_accessor_t(D&& value) :
+        ptr(std::unique_ptr<T>(new D{ std::move(value) }))
+    {}
+
+    template<std::derived_from<T> D>
+    shared_accessor_t(const D& value) :
+        ptr(std::unique_ptr<T>(new D{ value }))
+    {}
+
+    decltype(auto) operator()(auto*) const {
+        return ptr.get();
+    }
+
+    std::shared_ptr<T> ptr;
+};
+
+template <class T, class Functor>
+struct shared_proxy : public proxy<T, shared_accessor_t<T>, Functor> {
+    shared_proxy(T value = {}, Functor functor = {}) :
+        proxy<T, shared_accessor_t<T>, Functor>(shared_accessor_t<T>(std::move(value)), std::move(functor))
+    {}
+};
+
+template <class T, class Functor>
+shared_proxy(T, Functor) -> shared_proxy<T, Functor>;
+
+struct identity {
+    decltype(auto) operator()(auto base, std::string_view name, auto* proxy, auto&&... args) const {
+        return std::invoke(base, proxy, std::forward<decltype(args)>(args)...);
+    }
+};
+
+template <class T, class Functor = identity>
+struct polymorphic_value : public proxy<T, unique_accessor_t<T>, Functor> {
+    
     template<class C> 
     requires std::derived_from<C, T>
     polymorphic_value(C value) :
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ new C{std::move(value) } }, {}, {} },
+        proxy<T, unique_accessor_t<T>, Functor> { unique_accessor_t<T>{std::move(value) } },
         tsmp_copy_helper{ 
-            [](const T* b){ 
+            [](const unique_accessor_t<T>& b){ 
                 if constexpr(std::is_copy_constructible_v<C>) {
-                    return new C{ *(dynamic_cast<const C*>(b)) };
+                    return unique_accessor_t<T>{ *dynamic_cast<const C*>(b.ptr.get()) };
                 } else {
-                    return nullptr;
+                    throw std::runtime_error("Trying to copy a non-copyable value.");
                 }
             }
         }
     {}
 
     polymorphic_value(const polymorphic_value& cpy) :
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> { detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.__tsmp_base.get()) }, {}, {} },
+        proxy<T, unique_accessor_t<T>, Functor> { cpy.tsmp_copy_helper(cpy.accessor) },
         tsmp_copy_helper{cpy.tsmp_copy_helper}
     {
-        if(this->__tsmp_base.get() == nullptr) {
-            throw std::runtime_error("Trying to copy non copyable value.");
-        }
     }
 
     polymorphic_value(polymorphic_value&& ) = default;
     
     polymorphic_value& operator=(const polymorphic_value& cpy) {
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor>::__tsmp_base = detail::UniquePtr<T>{ cpy.tsmp_copy_helper(cpy.__tsmp_base.get()), {}, {} };
+        proxy<T, unique_accessor_t<T>, Functor>::_accessor = cpy.tsmp_copy_helper(cpy.__tsmp_accessor);
         tsmp_copy_helper = cpy.tsmp_copy_helper;
-        if(this->__tsmp_base.get() == nullptr) {
-            throw std::runtime_error("Trying to copy non copyable value.");
-        }
     }
 
     polymorphic_value& operator=(polymorphic_value&&) = default;
@@ -116,39 +175,10 @@ struct polymorphic_value : public proxy<T, detail::UniquePtr, detail::Dereferenc
     ~polymorphic_value() = default;
 
     private:
-        std::function<T*(const T*)> tsmp_copy_helper;
+        std::function<unique_accessor_t<T>(const unique_accessor_t<T>&)> tsmp_copy_helper;
 };
 
-template <class T, class Functor = detail::IdentityFunctor>
-struct unique_proxy : public proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor> {
-
-    unique_proxy(T value, Functor f) :
-        proxy<T, detail::UniquePtr, detail::DereferenceAccessor, Functor>{ detail::UniquePtr<T>{ new T{ std::move(value) } }, detail::DereferenceAccessor{}, std::move(f) }
-    {}
-
-    unique_proxy(const unique_proxy&) = default;
-    unique_proxy(unique_proxy&& ) = default;
-    
-    unique_proxy& operator=(const unique_proxy& cpy) = default;
-    unique_proxy& operator=(unique_proxy&&) = default;
-
-    ~unique_proxy() = default;
-};
-
-template <class T, class Functor = detail::IdentityFunctor>
-struct shared_proxy : public proxy<T, detail::SharedPtr, detail::DereferenceAccessor, Functor> {
-
-    shared_proxy(T value, Functor f) :
-        proxy<T, detail::SharedPtr, detail::DereferenceAccessor, Functor>{ detail::SharedPtr<T>{ new T{ std::move(value) } }, detail::DereferenceAccessor{}, std::move(f) }
-    {}
-
-    shared_proxy(const shared_proxy&) = default;
-    shared_proxy(shared_proxy&& ) = default;
-    
-    shared_proxy& operator=(const shared_proxy& cpy) = default;
-    shared_proxy& operator=(shared_proxy&&) = default;
-
-    ~shared_proxy() = default;
-};
+template <class T>
+polymorphic_value(T) -> polymorphic_value<T>;
 
 }

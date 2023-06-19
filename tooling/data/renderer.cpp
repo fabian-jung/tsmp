@@ -1,114 +1,171 @@
 #include "renderer.hpp"
-#include "data/prefix_splitter.hpp"
+#include "data/aggregator.hpp"
 #include "data/types.hpp"
+#include "fmt/core.h"
+#include "fmt/format.h"
 #include "fmt/ostream.h"
 
 #include <algorithm>
+#include <functional>
+#include <iterator>
 #include <map>
+#include <memory>
+#include <optional>
+#include <set>
+#include <string>
 #include <string_view>
+#include <vector>
+
+struct namespace_wrapper_t {
+    //TODO delete this abomination by using a proper tree structure
+    namespace_wrapper_t* parent = nullptr;
+    std::string name;
+    std::set<const data::record_t*> records;
+    std::map<std::string, std::unique_ptr<namespace_wrapper_t>> children;
+
+    static std::pair<std::string, std::string> split_namespace(std::string ns) {
+        if(ns.find("inline ") == 0) {
+            ns = ns.substr(7);
+        }
+        auto first_split = ns.find("::");
+        if(first_split != ns.npos) {
+            return { ns.substr(0, first_split), ns.substr(first_split+2)};
+        }
+        return { ns, "" };
+    }
+
+    void insert(const data::record_t* record, std::string ns) {
+        if(ns.empty()) {
+            records.emplace(record);
+            return;
+        }
+
+        auto [outer, inner] = split_namespace(ns);
+
+        auto pos = children.find(outer);
+        if(pos != children.end()) {
+            pos->second->insert(record, inner);
+        } else {
+            auto wrapper = std::make_unique<namespace_wrapper_t>(namespace_wrapper_t{this, outer});
+            wrapper->insert(record, inner);
+            children.emplace_hint(pos, outer, std::move(wrapper));
+        }
+    }
+
+    std::string full_namespace() const {
+        if(parent) {
+            return fmt::format("{}::{}", parent->full_namespace(), name);
+        }
+        return "";
+    }
+};
+
+template<>
+struct fmt::formatter<namespace_wrapper_t>
+{
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) const 
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(namespace_wrapper_t const& arg, FormatContext& ctx) const
+    {
+        std::string ns = arg.full_namespace();
+        for(const auto& record: arg.records) {
+            std::string template_definition;
+            if(!record->template_arguments.empty()) {
+                fmt::format_to(ctx.out(), "    template <{0}>\n", fmt::join(record->template_arguments, ", "));
+                std::vector<std::string_view> names;
+                std::transform(record->template_arguments.begin(), record->template_arguments.end(), std::back_inserter(names), [](const auto& arg) -> std::string_view {
+                    return arg.name;
+                });
+                template_definition = fmt::format("<{}>", fmt::join(names, ", "));
+            }
+            fmt::format_to(ctx.out(), "    using {0} = {1}::{0}{2};\n", record->name, ns, template_definition);
+        }
+        for(const auto& child: arg.children) {
+            fmt::format_to(ctx.out(), "    struct {} {{\n{}    }};\n", child.first, *child.second);
+        }
+        return ctx.out();
+    }
+};
+
+
 namespace data {
 
-std::string erase_substring(std::string input, const std::string& substring) {
-    std::string::size_type pos = 0u;
-    while((pos = input.find(substring, pos)) < input.size()) {
-        input.erase(pos, substring.size());
+// std::string erase_substring(std::string input, const std::string& substring) {
+//     std::string::size_type pos = 0u;
+//     while((pos = input.find(substring, pos)) < input.size()) {
+//         input.erase(pos, substring.size());
+//     }
+//     return input;
+// }
+
+// std::string generate_unique_parameter_name() {
+//     static std::uint64_t id = 0;
+//     return fmt::format("p{}", ++id);
+// }
+
+std::string render_class_definition(const data::record_t* record) {
+    std::string template_declaration;
+    if(!record->template_arguments.empty()) {
+        template_declaration += fmt::format("template<{}> ", fmt::join(record->template_arguments, ", ") );
     }
-    return input;
+
+    return fmt::format("{}{} {};", template_declaration, record->is_struct ? "struct" : "class", record->name);
 }
 
-std::string strip_special_chars(std::string input) {
-    const std::map<char, char> replacement_map {
-        {'~', 't'},
-        {'=', 'e'},
-        {'+', 'p'},
-        {'-', 'm'},
-        {'*', 'u'},
-        {'/', 'd'},
-        {'|', 'l'}        
-    };
-    auto is_special = [](char c) { 
-        return !((c>='a'&& c<='z') || (c>='A' && c<='Z') || (c>='0' && c<='9') || c =='_');
-    };
-    auto pos = input.begin();
-    while((pos=std::find_if(pos, input.end(), is_special)) != input.end()) {
-        auto& c = *pos;
-        const auto replacement = replacement_map.find(*pos);
-        if(replacement != replacement_map.end()) {
-            *pos = replacement->second;
-        } else {
-            *pos = 'x';
-        }
-    }
-    return input;
-}
-
-function_decl_t strip_special_chars_from_function(function_decl_t input) {
-    input.name = strip_special_chars(std::move(input.name));
-    return input;
-}
-
-std::string render_forward_declaration(const std::vector<record_decl_t>& records) {
+std::string render_forward_declaration(const reflection_aggregator_t::entry_container_t<record_t>& records) {
     std::string result;
     for(const auto& record : records) {
-        if(record.is_forward_declarable) {
-            std::string template_declaration;
-            if(!record.template_arguments.empty()) {
-                template_declaration += fmt::format("template<{}> ", fmt::join(record.template_arguments, ", ") );
-            }
-            std::string declaration = fmt::format("{}{} {};", template_declaration, record.is_struct ? "struct" : "class", record.name);
-            if(record.qualified_namespace.empty()) {
-                result += fmt::format("{}\n", declaration);
-            } else {
-                result += fmt::format("namespace {} {{ {} }}\n", record.qualified_namespace, declaration);
-            }
+        std::string declaration = render_class_definition(record);
+        if(record->qualified_namespace.empty()) {
+            result += fmt::format("{}\n", declaration);
+        } else {
+            result += fmt::format("namespace {} {{ {} }}\n", record->qualified_namespace, declaration);
         }
     }
     return result;
 }
 
-std::string render_concepts_for_fields(const std::set<field_decl_t>& fields) {
+std::string render_forward_declaration(const reflection_aggregator_t::entry_container_t<enum_t>& enums) {
     std::string result;
-    for(auto field : fields) {
-        result += fmt::format(
-            "template<class T> concept has_field_{0} = requires {{ T::{0}; }};\n",
-                field.name
-        );
-    }
-    return result;
-}
-
-std::string render_concepts_for_functions(const std::set<function_decl_t>& escaped_function_names) {
-    std::string result;
-    for(const auto& function_name : escaped_function_names) {
-        if(!function_name.overloaded) {
-            result += fmt::format(
-                "template<class T> concept has_function_{0} = requires {{ &T::{0}; }};\n",
-                function_name.name
-            );
+    for(const auto& e : enums) {
+        const std::string declaration = fmt::format("enum {}{};", e->scoped ? "class " : "", e->name);
+        if(e->qualified_namespace.empty()) {
+            result += fmt::format("{}\n", declaration);
+        } else {
+            result += fmt::format("namespace {} {{ {} }}\n", e->qualified_namespace, declaration);
         }
     }
     return result;
 }
 
-std::set<function_decl_t> escape_function_names(const std::set<function_decl_t>& functions) {
-    std::set<function_decl_t> result;
-    std::transform(functions.begin(), functions.end(), std::inserter(result, result.begin()), strip_special_chars_from_function);
-
-    return result;
-}
-
-std::vector<record_decl_t> escape_function_names(std::vector<record_decl_t> records) {
-    for(auto& record : records) {
-       record.functions = escape_function_names(record.functions);
+std::string render_tsmp_global(const reflection_aggregator_t::entry_container_t<record_t>& records) {
+    namespace_wrapper_t global;
+    for(const auto& record : records) {
+        global.insert(record, record->qualified_namespace);
     }
-    return records;
+constexpr auto global_template =
+R"(struct global_t {{
+{}
+}};
+)";    
+    return fmt::format(global_template, global);
 }
 
-std::string render_field_description(const std::set<field_decl_t>& fields) {
+// bool is_overloaded(const function_decl_t& function, const std::set<function_decl_t>& function_list) {
+//     const auto count = std::count_if(function_list.begin(), function_list.end(), [&function](const auto& elem){ return function.name == elem.name;});
+//     return count > 1;
+// }
+
+std::string render_field_description(const std::vector<field_decl_t>& fields) {
     std::string result;
     int i = 0;
     for(const auto& f : fields) {
-        result += fmt::format("\t\t\tfield_description_t{{ {0}, \"{1}\", &T::{1} }},\n", i++, f.name);
+        result += fmt::format("\t\t\tfield_description_t{{ {0}, \"{1}\", &value_type::{1} }},\n", i++, f.name);
     }
     if(!fields.empty()) {
         result.resize(result.size()-2);
@@ -116,12 +173,18 @@ std::string render_field_description(const std::set<field_decl_t>& fields) {
     return result;
 }
 
-std::string render_function_description(const std::set<function_decl_t>& functions) {
+std::string render_function_description(const std::vector<function_decl_t>& functions) {
     std::string result;
     int i = 0;
     for(const auto& f : functions) {
         if(f.name == "~") continue;
-        result += fmt::format("\t\t\tfunction_description_t{{ {0}, \"{1}\", &T::{1} }},\n", i++, f.name);
+        result += fmt::format(
+            "\t\t\tfunction_description_t{{ {0}, \"{1}\", static_cast<{2} (value_type::*)({3}) {4}{5}>(&value_type::{1}) }},\n",
+            i++,
+            f.name,
+            f.result ? f.result->get_name("typename GlobalNamespaceHelper::") : "<unknown>",
+            transform_join(f.parameter, ", ", [](const parameter_decl_t& p){ return p.type ? p.type->get_name("typename GlobalNamespaceHelper::") : "<unknown>"; }),
+            f.is_const ? "const"  : "", f.ref_qualifier);
     }
     
     if(!functions.empty()) {
@@ -130,90 +193,66 @@ std::string render_function_description(const std::set<function_decl_t>& functio
     return result;
 }
 
-std::string render_proxy_member(const std::set<field_decl_t>& fields) {
+std::string render_proxy_functions(const std::vector<function_decl_t>& functions) {
     std::string result;
-    int i = 0;
-    for(const auto& f : fields) {
-        result += fmt::format("\tdecltype(__tsmp_accessor(__tsmp_base).{0})& {0} = __tsmp_accessor(__tsmp_base).{0};\n", f.name);
-    }
-
-    return result;
-}
-std::string render_proxy_functions(const std::set<function_decl_t>& functions) {
-    std::string result;
-
-    std::set<std::string> function_names;
-    std::transform(
-        functions.begin(),
-        functions.end(),
-        std::inserter(function_names, function_names.end()),
-        [](const auto& decl){ return decl.name;
-    });
-
-    for(const auto& name : function_names) {
-        if(name == "~") continue;
+    for(auto function : functions) {
+        if(function.name == "~") continue;      
+        std::vector<std::string> param_list;
+        std::uint64_t placeholder_id = 0;
+        for(auto& p : function.parameter) {
+            if(p.name.empty()) {
+                p.name = fmt::format("_{}", ++placeholder_id); // TODO: placeholder
+            }
+            // if(p.type == ref_qualifier_t::rvalue) { // TODO : rvalue
+            //     param_list.emplace_back(fmt::format("std::move({})", p.name));
+            // } else {
+                param_list.emplace_back(p.name);
+            // }
+        }
         result += fmt::format(
-R"(template <class... Args>
-constexpr decltype(auto) {0}(Args&&... args) {{
-    auto __tsmp_base_function = [this](auto... argv) -> decltype(auto) {{ return __tsmp_accessor(__tsmp_base).{0}(std::forward<decltype(argv)>(argv)...); }};
-    return __tsmp_fn(__tsmp_base_function, "{0}", std::forward<Args>(args)...);
-}}
+R"(    {10}{4} {0}({1}) {2}{3}{{
+        if constexpr ((std::is_base_of_v<Base, value_type> || ...)) {{
+            auto base_function = [](auto* proxy, auto&&... argv) -> decltype(auto) {{ return proxy->value_type::{0}(std::forward<decltype(argv)>(argv)...); }};
+            return fn(base_function, "{0}"{9}{5}{6});
+        }} else {{
+            using Fn = {7} ({8}*)({1}) {2}{3};
+            Fn base_function = &value_type::{0};
+            return fn(base_function, "{0}"{9}{5}{6});
+        }}
+    }}
 )",
-            name
+            function.name,
+            transform_join(function.parameter, ", ", [](const parameter_decl_t& param) {
+                return fmt::format(
+                    "{} {}{}",
+                    param.type ? param.type->get_name("typename GlobalNamespaceHelper::") : "<unknown>",
+                    param.name, param.is_pack ? "..." : ""
+                );
+            }),
+            function.is_const ? "const" : "",
+            function.ref_qualifier,
+            function.is_virtual ? fmt::format("{}", function.result->get_name("typename GlobalNamespaceHelper::")) : "decltype(auto)",
+            param_list.empty() ? "" : ", ",
+            fmt::join(param_list, ", "),
+            function.result ? function.result->get_name("typename GlobalNamespaceHelper::") : "<unknown>",
+            function.is_static ? "" : "value_type::",
+            function.is_static ? "" : ", accessor(this)",
+            function.is_constexpr ? "constexpr " : ""
         );
     }
 
     return result;
 }
 
-std::string render_requires_clauses(const record_decl_t& record) {
-    std::string result;
-    if(record.is_forward_declarable) {
-        std::string unqualified_namespace = erase_substring(record.qualified_namespace, "inline ");
-        std::string template_definition;
-        if(!record.template_arguments.empty()) {
-            std::string list;
-            for(auto s : record.template_arguments) {
-                list += s.value + ", ";
-            }
-            list.resize(list.size()-2);
-            template_definition = fmt::format("<{}>",list);
-        }
-        result += fmt::format(
-            "requires std::same_as<std::remove_cv_t<T>, {}{}{}{}>",
-            unqualified_namespace, 
-            unqualified_namespace.empty() ? "" : "::",
-            record.name,
-            template_definition
-        );
-    } else {
-        result += (!record.functions.empty()||!record.fields.empty()) ? "requires " : "";
-        if(!record.fields.empty()) {               
-            result += fmt::format("has_field_{}<T>", fmt::join(record.fields, "<T> && has_field_"));
-        }
-        std::vector<function_decl_t> non_overloaded_functions;
-        for(const auto& function : record.functions) {
-            if(!function.overloaded) {
-                non_overloaded_functions.emplace_back(function);
-            }
-        }
-        if(!record.functions.empty()) {
-            if(!record.fields.empty()) {
-                result += " && " ;
-            }
-            result += fmt::format("has_function_{}<T>", fmt::join(non_overloaded_functions, "<T> && has_function_"));
-        }
-    }
-    return result;
-}
-
-std::string render_record_declaration(const prefix_splitter_t& splitter) {
+std::string render_record_declaration(const reflection_aggregator_t::entry_container_t<record_t>& records) {
     constexpr std::string_view reflect_trait_template =
-R"(template <class T>
-{}
-struct reflect{} {{
+R"(template <class GlobalNamespaceHelper>
+struct reflect_impl{} {{
     static constexpr bool reflectable = true;
     static constexpr bool forward_declareable = {};
+
+    using value_type = {};
+
     constexpr static auto name() {{
         return "{}";
     }}
@@ -233,15 +272,17 @@ struct reflect{} {{
 )";
 
     constexpr std::string_view proxy_trait_template =
-R"(template <class T, template<class> class Container, class Accessor, class Functor> 
-{}
-struct proxy{} {{
-    Container<T> __tsmp_base;
-    Accessor __tsmp_accessor; // maps container<foo_t> to foo_t&
-    Functor __tsmp_fn; // User function
+R"(template <class GlobalNamespaceHelper, class Accessor, class Functor, class... Base> 
+struct proxy_impl{} : public Base... {{
+    Accessor accessor;
+    Functor fn;
 
-{}
+    using value_type = {};
 
+    proxy_impl(Accessor accessor = {{}}, Functor fn = {{}}) :
+        accessor(std::move(accessor)),
+        fn(std::move(fn))
+    {{}}
 {}
 }};
 
@@ -265,72 +306,53 @@ struct reflect<{0}> {{
 
 )";
 
-    const auto records = escape_function_names(splitter.records());
-    const auto fields = splitter.fields();
-    const auto functions = escape_function_names(splitter.functions());
-    const auto trivial_types = splitter.trivial_types();
-
     std::string result;
-    result += render_concepts_for_fields(fields);
-    result += render_concepts_for_functions(functions);  
-    result += '\n';
-
     for(auto record : records) {
-        const std::string fields = render_field_description(record.fields);
-        const std::string proxy_members = render_proxy_member(record.fields);
-        const std::string functions = render_function_description(record.functions);
-        const std::string proxy_functions = render_proxy_functions(record.functions);
-         
-        std::string requirements = render_requires_clauses(record);
+        const std::string fields = render_field_description(record->fields);
+        const std::string functions = render_function_description(record->functions);
+        const std::string proxy_functions = render_proxy_functions(record->functions);
 
+        const auto decorated_name = record->get_name("typename GlobalNamespaceHelper::"); 
         result += 
             fmt::format(
                 reflect_trait_template,
-                requirements,
-                requirements.empty() ? "" : "<T>",
-                record.is_forward_declarable,
-                record.name,
+                fmt::format("<GlobalNamespaceHelper, {}>", decorated_name),
+                true,
+                decorated_name,
+                record->name,
                 fields,
                 functions
             );
 
+        std::string unqualified_namespace = fmt::format("{1}{0}",
+            record->get_namespace(data::namespace_option_t::unqualified),
+            record->qualified_namespace.empty() ? "" : "::"
+        );
+
         result+=
             fmt::format(
                 proxy_trait_template,
-                requirements,
-                requirements.empty() ? "" : "<T, Container, Accessor, Functor>",
-                proxy_members,
+                fmt::format("<GlobalNamespaceHelper, {}, Accessor, Functor, Base...>", record->get_name("typename GlobalNamespaceHelper::")),
+                fmt::format("typename GlobalNamespaceHelper{}::{}", unqualified_namespace, record->name),
                 proxy_functions
-            );
-    }
-
-    for(auto record : trivial_types) {
-        result += 
-            fmt::format(
-                trivial_type_trait_template,
-                record
             );
     }
 
     return result;
 }
 
-renderer_t::renderer_t(std::string output_file) :
-    output_file(std::move(output_file))
+renderer_t::renderer_t(std::string header) :
+    header(std::move(header))
 {}
 
-std::string render_enum_declaration(const enum_splitter_t& enum_splitter) {
+std::string render_enum_declaration(const reflection_aggregator_t::entry_container_t<enum_t>& enum_splitter) {
     std::string result;
-    for(const auto& value : enum_splitter.fields) {
-        result += fmt::format("template<class E> concept has_enum_value_{0} = requires(E) {{ E::{0}; }};\n", value);
-    }
-    result += "\n";
-    for(const auto& decl : enum_splitter.decls) {
+    for(const auto& decl : enum_splitter) {
         std::string requirements = "    has_enum_value_", entries;
-        requirements += fmt::format("{}", fmt::join(decl.values, "<E> && \n    has_enum_value_"));
+        requirements += fmt::format("{}", fmt::join(decl->values, "<E> && \n    has_enum_value_"));
         requirements += "<E>";
 
-        for(auto value : decl.values) {
+        for(auto value : decl->values) {
             entries += fmt::format("        enum_entry_description_t<E> {{ \"{0}\", E::{0} }},\n", value);
         }
         entries.resize(entries.size()-2); // remove last ",\n"
@@ -351,32 +373,46 @@ struct enum_value_adapter<E> {{
 }
 
 void renderer_t::render(const data::reflection_aggregator_t& aggregator) {
-   
+
+// FIXME: including cstdint is a workaround to get integer literals working as template arguments
+// it currently does not work for custom aliases
 constexpr std::string_view code_template = 
 R"(#pragma once
 #include <tuple>
-#include <tsmp/reflect.hpp>
-#include <tsmp/proxy.hpp>
+#include <stdbool.h>
+#include <cstdint>
+
+{}
 {}
 namespace tsmp {{
+
+template <class GlobalNamespaceHelper, class T>
+struct reflect_impl;
+
+template <class GlobalNamespaceHelper, class T, class Accessor, class Functor, class... Base>
+struct proxy_impl;
+
+{}
+
+
 {}
 {}
 }}
 )";
 
-    const auto records = aggregator.records();
-    const auto trivial_types = aggregator.trivial_types();
-    const auto enums = aggregator.enums();
-
-    const prefix_splitter_t splitter(records, trivial_types);
-    const enum_splitter_t enum_splitter(enums);
+    fmt::print(
+        "List of records to be rendered:\n{}\n",
+        transform_join(aggregator.fetch<record_t>(), "\n", [](const auto* record){ return record->get_name("typename GlobalNamespaceHelper::"); })
+    );
 
     fmt::print(
-        output_file,
+        header,
         code_template,
-        render_forward_declaration(records),
-        render_record_declaration(splitter),
-        render_enum_declaration(enum_splitter)
+        render_forward_declaration(aggregator.fetch<data::record_t>()),
+        render_forward_declaration(aggregator.fetch<data::enum_t>()),
+        render_tsmp_global(aggregator.fetch<data::record_t>()),
+        render_record_declaration(aggregator.fetch<data::record_t>()),
+        render_enum_declaration(aggregator.fetch<data::enum_t>())
     );
 }
 

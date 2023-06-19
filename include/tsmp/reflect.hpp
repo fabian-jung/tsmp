@@ -43,15 +43,11 @@ struct enum_entry_description_t {
         return entry.value;
     }
 };
-
-#ifndef TSMP_INTROSPECT_PASS
-template <class T>
-struct reflect;
-
+ 
 template<Enum E>
 struct enum_value_adapter;
 
-#else
+#ifdef TSMP_INTROSPECT_PASS
 template <class T>
 struct reflect {
     constexpr static bool reflectable = false;
@@ -112,3 +108,10 @@ constexpr E enum_from_string(std::string_view name) {
 #if !defined(TSMP_INTROSPECT_PASS) && defined(TSMP_REFLECTION_ENABLED)
 #include "reflection.hpp"
 #endif
+
+namespace tsmp {
+
+template <class T>
+using reflect = reflect_impl<global_t, T>;
+
+}

@@ -4,67 +4,69 @@
 #include <fmt/core.h>
 #include <concepts>
 
-#include <tsmp/introspect.hpp>
+#include <tsmp/reflect.hpp>
 #include <iostream>
 
-template <typename T> 
-concept arithmetic = std::floating_point<T> || std::integral<T>;
+struct todo_ {
 
-std::string to_json(const char* value) {
-    return fmt::format("\"{}\"", value);
-}
+};
 
-std::string to_json(const arithmetic auto& value) {
-    return fmt::format("{}", value);
-}
-
-std::string to_json(const std::string& value) {
-    return fmt::format("\"{}\"", value);
-}
-
-std::string to_json(const auto& value) {
-    tsmp::introspect introspecter{ value };
-    std::string result;
-    if constexpr(introspecter.has_fields()) {
-        const auto fields = introspecter.visit_fields([&](size_t, std::string_view name, const auto& value) {
-            return fmt::format("\"{}\":{}", name, to_json(value));
-        });
-        return fmt::format("{{{}}}",  fmt::join(fields, ", "));
-    } else {
-        return "{}";
-    }
-}
-
-struct bar_t {
+struct foo_t {
     const char* baba = "baba";
     std::string s = "asdas";
-};
 
-namespace some::special::ns {
-struct foo_t {
-    int a { 42 };
-    // std::string s { "test" };
-    float f = 3.14;
+    constexpr void call() const& {
+        fmt::print("foo::call() const& const was called;\n");
+    }
 
-    
-    bar_t bar;
-};
-}
+    constexpr void call() && {
+        fmt::print("foo::call() && const was called;\n");
+    }
 
-struct outer_t {
-    struct inner_t {
-        int some_inner_i = 0;
-    };
+    constexpr void call2() const {
+        fmt::print("foo::call2() const const was called;\n");
+    }
 
-    inner_t some_outer_i {};
+    constexpr void call2() {
+        fmt::print("foo::call() && const was called;\n");
+    }
+
+    constexpr void call3(int&& i) const {
+        fmt::print("foo::call3({}) was called;\n", i);
+    }
+
+
+    constexpr void call4(const int& i) const {
+        fmt::print("foo::call4({}) was called;\n", i);
+    }
+
+
+    constexpr void call5(int& i) const {
+        fmt::print("foo::call5({}) was called;\n", i);
+    }
+
+
+    constexpr void call6(int const& i) const {
+        fmt::print("foo::call6({}) was called;\n", i);
+    }
+
+    constexpr void call7(const int i) const {
+        fmt::print("foo::call7({}) was called;\n", i);
+    }
+
+    constexpr void call8(int* const i) const {
+        fmt::print("foo::call8({}) was called;\n", *i);
+    }
+
+    constexpr void call9(const int* i) const {
+        fmt::print("foo::call9({}) was called;\n", *i);
+    }
 };
 
 int main(int, const char**) {
-    tsmp::reflect<some::special::ns::foo_t>::functions();
-
-	std::cout << to_json(some::special::ns::foo_t{}) << std::endl;
-    std::cout << to_json(outer_t::inner_t{}) << std::endl;
-    std::cout << to_json(outer_t{}) << std::endl;
-
+    auto functions = tsmp::reflect<foo_t>::functions();
+    std::invoke(std::get<0>(functions).ptr, foo_t{});
+    std::invoke(std::get<1>(functions).ptr, foo_t{});
+    std::invoke(std::get<2>(functions).ptr, foo_t{});
     return 0;
 }
