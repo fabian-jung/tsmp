@@ -40,16 +40,9 @@ add_dependencies(tsmp INTERFACE
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     # if CMAKE_CURRENT_SOURCE_DIR != CMAKE_SOURCE_DIR, tsmp has been loaded via add_subdirectory or FetchContent
     # in this case we do not to pollute the global configuration with the example and test targets.
+
     add_subdirectory(examples)
     add_subdirectory(test)
-
-    if(MSVC)
-        target_compile_options(introspect_lib PRIVATE "/O3")
-        target_compile_options(introspect_tool PRIVATE "/O3")
-    else()
-        target_compile_options(introspect_lib PRIVATE "-O3")
-        target_compile_options(introspect_tool PRIVATE "-O3")
-    endif()
 
     install(TARGETS tsmp introspect_tool EXPORT tsmpConfig DESTINATION lib/tsmp)
     install(EXPORT tsmpConfig NAMESPACE tsmp:: FILE tsmpTargets.cmake DESTINATION lib/cmake/tsmp)
@@ -57,4 +50,13 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     install(TARGETS introspect_tool RUNTIME DESTINATION bin)
     install(FILES cmake/tsmpConfig.cmake DESTINATION lib/cmake/tsmp)
     install(DIRECTORY include/tsmp DESTINATION include FILES_MATCHING PATTERN "*.h*")
+else()
+    message(STATUS "Detected configuration of tsmp as part of a larger project. Not building examples and tests. Manually set optimisation level to 3 for the introspection tool.")
+    if(MSVC)
+        target_compile_options(introspect_lib PRIVATE "/O3")
+        target_compile_options(introspect_tool PRIVATE "/O3")
+    else()
+        target_compile_options(introspect_lib PRIVATE "-O3")
+        target_compile_options(introspect_tool PRIVATE "-O3")
+    endif()
 endif()
