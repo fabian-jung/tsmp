@@ -34,21 +34,21 @@ TEST_CASE("member field&function index calculation test", "[unit]") {
     foo_t foo {0, 0.0f};
     tsmp::introspect foo_introspecter(foo);
 
-    static_assert(tsmp::introspect<foo_t>::field_id("i") == 1, "Index of i is wrong.");
-    static_assert(tsmp::introspect<foo_t>::field_id("f") == 0, "Index of f is wrong.");
+    static_assert(tsmp::introspect<foo_t>::field_id("i") == 0, "Index of i is wrong.");
+    static_assert(tsmp::introspect<foo_t>::field_id("f") == 1, "Index of f is wrong.");
 
-    static_assert(foo_introspecter.field_id("i") == 1, "Index of i is wrong.");
-    static_assert(foo_introspecter.field_id("f") == 0, "Index of f is wrong.");
+    static_assert(foo_introspecter.field_id("i") == 0, "Index of i is wrong.");
+    static_assert(foo_introspecter.field_id("f") == 1, "Index of f is wrong.");
 
-    static_assert(tsmp::introspect<foo_t>::function_id("print") == 2, "Index of i is wrong.");
-    static_assert(tsmp::introspect<foo_t>::function_id("print2") == 3, "Index of f is wrong.");
-    static_assert(tsmp::introspect<foo_t>::function_id("add") == 0, "Index of f is wrong.");
-    static_assert(tsmp::introspect<foo_t>::function_id("inc") == 1, "Index of f is wrong.");
+    static_assert(tsmp::introspect<foo_t>::function_id("print") == 0, "Index of i is wrong.");
+    static_assert(tsmp::introspect<foo_t>::function_id("print2") == 1, "Index of f is wrong.");
+    static_assert(tsmp::introspect<foo_t>::function_id("add") == 2, "Index of f is wrong.");
+    static_assert(tsmp::introspect<foo_t>::function_id("inc") == 3, "Index of f is wrong.");
 
-    static_assert(foo_introspecter.function_id("print") == 2, "Index of i is wrong.");
-    static_assert(foo_introspecter.function_id("print2") == 3, "Index of f is wrong.");
-    static_assert(foo_introspecter.function_id("add") == 0, "Index of f is wrong.");
-    static_assert(foo_introspecter.function_id("inc") == 1, "Index of f is wrong.");
+    static_assert(foo_introspecter.function_id("print") == 0, "Index of i is wrong.");
+    static_assert(foo_introspecter.function_id("print2") == 1, "Index of f is wrong.");
+    static_assert(foo_introspecter.function_id("add") == 2, "Index of f is wrong.");
+    static_assert(foo_introspecter.function_id("inc") == 3, "Index of f is wrong.");
 }
 
 TEST_CASE("compile-time get member attribute test", "[unit]") {
@@ -113,7 +113,7 @@ TEST_CASE("member function execution test, no arguments, no result", "[unit]") {
     tsmp::introspect foo_introspecter(foo);
     print_counter = 0;
 
-    foo_introspecter.call<2>();
+    foo_introspecter.call<0>();
     REQUIRE(print_counter == 1);
     foo_introspecter.call<"print">();
     REQUIRE(print_counter == 2);
@@ -127,7 +127,7 @@ TEST_CASE("member function execution test, with arguments, no result", "[unit]")
     tsmp::introspect foo_introspecter(foo);
     print2_counter = 0;
 
-    foo_introspecter.call<3>(42);
+    foo_introspecter.call<1>(42);
     REQUIRE(print2_counter == 1);
     foo_introspecter.call<"print2">(42);
     REQUIRE(print2_counter == 2);
@@ -140,7 +140,7 @@ TEST_CASE("member function execution test, with arguments and result","[unit]") 
     const foo_t foo {43, 0.0f};
     tsmp::introspect foo_introspecter(foo);
 
-    REQUIRE(foo_introspecter.call<0>(5, 2) == 7);
+    REQUIRE(foo_introspecter.call<2>(5, 2) == 7);
     REQUIRE(foo_introspecter.call<"add">(5, 2) == 7);
     const auto invoke_result = foo_introspecter.invoke("add", 5, 2);
     REQUIRE(std::holds_alternative<int>(invoke_result));
@@ -154,7 +154,7 @@ TEST_CASE("member function execution test with state change", "") {
     print2_counter = 0;
 
     REQUIRE(foo.i == 43);
-    foo_introspecter.call<1>();
+    foo_introspecter.call<3>();
     REQUIRE(foo.i == 44);
 
     foo_introspecter.call<"inc">();

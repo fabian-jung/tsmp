@@ -176,7 +176,7 @@ std::vector<data::template_argument_t> ast_traversal_tool_t::template_argument_a
                 }
             } else if(const auto* value_decl = dynamic_cast<NonTypeTemplateParmDecl*>(arg)) {
                 fmt::print("value template arg: {} {} {}\n", value_decl->getType().getAsString(), name, value);
-                result.emplace_back(data::template_argument_t{ fmt::format("::{}", value_decl->getType().getAsString()), name, value });
+                result.emplace_back(data::template_argument_t{ value_decl->getType().getAsString(), name, value });
             } else {
                 fmt::print("Template argument type not implemented.\n");
             }

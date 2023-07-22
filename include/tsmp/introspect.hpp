@@ -155,14 +155,14 @@ struct introspect {
     template <size_t id, class... Args>
     constexpr decltype(auto) call(Args&&... args) const {
         constexpr auto ptr = std::get<id>(reflect<T>::functions()).ptr;
-        return (internal.*ptr)(std::forward<Args>(args)...);
+        return std::invoke(ptr, internal, std::forward<Args>(args)...);
     }
 
     template <string_literal_t name, class... Args>
     constexpr decltype(auto) call(Args&&... args) const {
         constexpr auto id = function_id(name);
         constexpr auto ptr = std::get<id>(reflect<T>::functions()).ptr;
-        return (internal.*ptr)(std::forward<Args>(args)...);
+        return std::invoke(ptr, internal, std::forward<Args>(args)...);
     }
 
     template <class... Args>

@@ -52,7 +52,9 @@ namespace json_example {
         struct bar_t {
             int i { 0 };
         } bar;
-        std::array<int, 4> numbers { 1, 2, 3, 4 };
+        // todo
+        // std::array<int, 4> numbers { 1, 2, 3, 4 };
+        std::vector<int> numbers { 1, 2, 3, 4 };
     };
 
 }

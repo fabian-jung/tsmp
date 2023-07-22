@@ -134,8 +134,8 @@ template <class T, class Functor>
 shared_proxy(T, Functor) -> shared_proxy<T, Functor>;
 
 struct identity {
-    decltype(auto) operator()(auto base, std::string_view name, auto* proxy, auto&&... args) const {
-        return std::invoke(base, proxy, std::forward<decltype(args)>(args)...);
+    decltype(auto) operator()(auto base, std::string_view name, auto&&... args) const {
+        return std::invoke(base, std::forward<decltype(args)>(args)...);
     }
 };
 

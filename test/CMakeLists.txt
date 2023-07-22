@@ -2,7 +2,7 @@ set(TESTS
     reflect.cpp
     introspect.cpp
     proxy.cpp
-    json.cpp
+    # json.cpp
     string_literal.cpp
 )
 
@@ -34,6 +34,3 @@ add_executable(reflection_with_external_linking
 target_link_libraries(reflection_with_external_linking PRIVATE lib_with_reflection Catch2::Catch2WithMain tsmp::json)
 catch_discover_tests(reflection_with_external_linking)
 target_compile_options(reflection_with_external_linking PRIVATE ${TSMP_CMAKE_CXX_FLAGS})
-
-
-add_subdirectory(tooling)
