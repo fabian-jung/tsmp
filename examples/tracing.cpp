@@ -28,12 +28,12 @@ struct trace_data_t {
         const std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
     };
     
-    trace_data_t(const char* class_name) : 
-        class_name(class_name)
+    trace_data_t(std::string class_name) : 
+        class_name(std::move(class_name))
     {}
 
-    collector_t collect(const char* name) {
-        return { data[name] };
+    collector_t collect(std::string name) {
+        return { data[std::move(name)] };
     }
 
     ~trace_data_t() {
@@ -44,8 +44,8 @@ struct trace_data_t {
 
 
 
-    const char* class_name;
-    std::map<const char*, entry_t> data;
+    std::string class_name;
+    std::map<std::string, entry_t> data;
 };
 
 struct tracing_functor_t {
@@ -57,8 +57,8 @@ struct tracing_functor_t {
     trace_data_t data;
 
     template <class... Args>
-    decltype(auto) operator()(auto& fn, const char* name, Args&&... args) {
-        const auto collector = data.collect(name);
+    decltype(auto) operator()(auto& fn, std::string name, Args&&... args) {
+        const auto collector = data.collect(std::move(name));
         return std::invoke(fn, std::forward<Args>(args)...);
     }
 };
@@ -66,18 +66,9 @@ struct tracing_functor_t {
 template <class T>
 using tracing_proxy = tsmp::value_proxy<T, tracing_functor_t>;
 
-struct Foo {
-    void print() {};
-};
 
 int main(int, char*[]) {
-    // tracing_proxy<std::vector<int>> test_vector;
     auto test_vector = tsmp::value_proxy{ std::vector<int>{}, tracing_functor_t{"std::vector<int>"} };
-    
-    std::vector<int> test;
-    Foo foo;
-    tsmp::introspect vector_introspecter { foo };
-    vector_introspecter.invoke("print");
 
     for(auto i = 0u; i < 1000000u; ++i) {
         test_vector.push_back(5);
@@ -92,5 +83,5 @@ int main(int, char*[]) {
     }
     
     
-        return 0;
+    return 0;
 }

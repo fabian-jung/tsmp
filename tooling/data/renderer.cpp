@@ -157,10 +157,10 @@ std::string render_forward_declaration(const reflection_aggregator_t::entry_cont
     std::string result;
     for(const auto& e : enums) {
         const std::string declaration = fmt::format(
-            "enum {}{} : {};",
+            "enum {}{}{};",
             e->scoped ? "class " : "",
             e->name,
-            e->underlying_type->get_name()
+            e->underlying_type ? fmt::format(" : {}", e->underlying_type.value()->get_name()) : ""
         );
         if(e->qualified_namespace.empty()) {
             result += fmt::format("{}\n", declaration);
@@ -219,7 +219,9 @@ std::string render_function_description(const std::vector<function_decl_t>& func
             f.name,
             f.result ? f.result->get_name("typename GlobalNamespaceHelper::") : "<unknown>",
             transform_join(f.parameter, ", ", [](const parameter_decl_t& p){ return p.type ? p.type->get_name("typename GlobalNamespaceHelper::") : "<unknown>"; }),
-            f.is_const ? "const"  : "", f.ref_qualifier);
+            f.is_const ? "const"  : "",
+            f.ref_qualifier
+        );
     }
     
     if(!functions.empty()) {
@@ -236,13 +238,13 @@ std::string render_proxy_functions(const std::vector<function_decl_t>& functions
         std::uint64_t placeholder_id = 0;
         for(auto& p : function.parameter) {
             if(p.name.empty()) {
-                p.name = fmt::format("_{}", ++placeholder_id); // TODO: placeholder
+                p.name = fmt::format("tsmp_placeholder_{}", ++placeholder_id);
             }
-            // if(p.type == ref_qualifier_t::rvalue) { // TODO : rvalue
-            //     param_list.emplace_back(fmt::format("std::move({})", p.name));
-            // } else {
+            if(auto ref = dynamic_cast<const data::reference_t*>(p.type); ref != nullptr && ref->ref_qualifier == data::ref_qualifier_t::lvalue) {
                 param_list.emplace_back(p.name);
-            // }
+            } else {
+                param_list.emplace_back(fmt::format("std::move({})", p.name));
+            }
         }
         result += fmt::format(
 R"(    {10}{4} {0}({1}) {2}{3}{{
@@ -284,7 +286,6 @@ std::string render_record_declaration(const reflection_aggregator_t::entry_conta
 R"(template <class GlobalNamespaceHelper>
 struct reflect_impl{} {{
     static constexpr bool reflectable = true;
-    static constexpr bool forward_declareable = {};
 
     using value_type = {};
 
@@ -352,7 +353,6 @@ struct reflect<{0}> {{
             fmt::format(
                 reflect_trait_template,
                 fmt::format("<GlobalNamespaceHelper, {}>", decorated_name),
-                true,
                 decorated_name,
                 record->name,
                 fields,
@@ -367,8 +367,8 @@ struct reflect<{0}> {{
         result+=
             fmt::format(
                 proxy_trait_template,
-                fmt::format("<GlobalNamespaceHelper, {}, Accessor, Functor, Base...>", record->get_name("typename GlobalNamespaceHelper::")),
-                fmt::format("typename GlobalNamespaceHelper{}::{}", unqualified_namespace, record->name),
+                fmt::format("<GlobalNamespaceHelper, {}, Accessor, Functor, Base...>", decorated_name),
+                decorated_name,
                 proxy_functions
             );
     }
@@ -413,9 +413,11 @@ R"(#pragma once
 #include <tuple>
 #include <stdbool.h>
 #include <cstdint>
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-redeclared-enum"
 {}
 {}
+#pragma GCC diagnostic pop
 namespace tsmp {{
 
 template <class GlobalNamespaceHelper, class T>

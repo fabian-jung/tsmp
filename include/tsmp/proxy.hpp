@@ -50,8 +50,8 @@ struct value_accessor_t {
         value(std::move(value))
     {}
 
-    T* operator()(auto*) {
-        return &value;
+    T& operator()(auto*) {
+        return value;
     }
 
     T value;
