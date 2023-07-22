@@ -309,7 +309,7 @@ struct record_t : public decl_t {
 namespace fmt {
 
 template<>
-struct fmt::formatter<data::ref_qualifier_t> {
+struct formatter<data::ref_qualifier_t> {
     template<typename ParseContext>
     constexpr auto parse(ParseContext& ctx) const
     {
@@ -331,7 +331,7 @@ struct fmt::formatter<data::ref_qualifier_t> {
 };
 
 template<>
-struct fmt::formatter<data::cv_qualifier_t> {
+struct formatter<data::cv_qualifier_t> {
     template<typename ParseContext>
     constexpr auto parse(ParseContext& ctx) const
     {
@@ -355,7 +355,7 @@ struct fmt::formatter<data::cv_qualifier_t> {
 };
 
 template<>
-struct fmt::formatter<data::parameter_decl_t> {
+struct formatter<data::parameter_decl_t> {
     template<typename ParseContext>
     constexpr auto parse(ParseContext& ctx) const
     {
@@ -370,7 +370,7 @@ struct fmt::formatter<data::parameter_decl_t> {
 };
 
 template<>
-struct fmt::formatter<data::function_decl_t> {
+struct formatter<data::function_decl_t> {
     template<typename ParseContext>
     constexpr auto parse(ParseContext& ctx) const
     {
@@ -385,7 +385,7 @@ struct fmt::formatter<data::function_decl_t> {
 };
 
 template<>
-struct fmt::formatter<data::field_decl_t> {
+struct formatter<data::field_decl_t> {
     template<typename ParseContext>
     constexpr auto parse(ParseContext& ctx) const
     {
@@ -400,7 +400,7 @@ struct fmt::formatter<data::field_decl_t> {
 };
 
 template<>
-struct fmt::formatter<data::template_argument_t>
+struct formatter<data::template_argument_t>
 {
     template<typename ParseContext>
     constexpr auto parse(ParseContext& ctx) const 
