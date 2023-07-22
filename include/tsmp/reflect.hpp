@@ -84,10 +84,10 @@ struct global_t {};
 namespace tsmp {
 
 template <class T>
-using reflect = reflect_impl<global_t, T>;
+using reflect = reflect_impl<global_t, std::remove_const_t<T>>;
 
 template <Enum E>
-using enum_value_adapter = enum_value_adapter_impl<global_t, E>;
+using enum_value_adapter = enum_value_adapter_impl<global_t, std::remove_const_t<E>>;
 
 template <Enum E>
 constexpr auto enum_values = [](){
