@@ -21,6 +21,7 @@ struct namespace_wrapper_t {
     namespace_wrapper_t* parent = nullptr;
     std::string name;
     std::set<const data::record_t*> records;
+    std::set<const data::enum_t*> enums;
     std::map<std::string, std::unique_ptr<namespace_wrapper_t>> children;
 
     static std::pair<std::string, std::string> split_namespace(std::string ns) {
@@ -48,6 +49,24 @@ struct namespace_wrapper_t {
         } else {
             auto wrapper = std::make_unique<namespace_wrapper_t>(namespace_wrapper_t{this, outer});
             wrapper->insert(record, inner);
+            children.emplace_hint(pos, outer, std::move(wrapper));
+        }
+    }
+
+    void insert(const data::enum_t* e, std::string ns) {
+        if(ns.empty()) {
+            enums.emplace(e);
+            return;
+        }
+
+        auto [outer, inner] = split_namespace(ns);
+
+        auto pos = children.find(outer);
+        if(pos != children.end()) {
+            pos->second->insert(e, inner);
+        } else {
+            auto wrapper = std::make_unique<namespace_wrapper_t>(namespace_wrapper_t{this, outer});
+            wrapper->insert(e, inner);
             children.emplace_hint(pos, outer, std::move(wrapper));
         }
     }
@@ -84,6 +103,10 @@ struct fmt::formatter<namespace_wrapper_t>
                 template_definition = fmt::format("<{}>", fmt::join(names, ", "));
             }
             fmt::format_to(ctx.out(), "    using {0} = {1}::{0}{2};\n", record->name, ns, template_definition);
+        }
+        for(const auto& e: arg.enums) {
+            std::string template_definition;
+            fmt::format_to(ctx.out(), "    using {0} = {1}::{0};\n", e->name, ns);
         }
         for(const auto& child: arg.children) {
             fmt::format_to(ctx.out(), "    struct {} {{\n{}    }};\n", child.first, *child.second);
@@ -133,7 +156,12 @@ std::string render_forward_declaration(const reflection_aggregator_t::entry_cont
 std::string render_forward_declaration(const reflection_aggregator_t::entry_container_t<enum_t>& enums) {
     std::string result;
     for(const auto& e : enums) {
-        const std::string declaration = fmt::format("enum {}{};", e->scoped ? "class " : "", e->name);
+        const std::string declaration = fmt::format(
+            "enum {}{} : {};",
+            e->scoped ? "class " : "",
+            e->name,
+            e->underlying_type->get_name()
+        );
         if(e->qualified_namespace.empty()) {
             result += fmt::format("{}\n", declaration);
         } else {
@@ -143,11 +171,18 @@ std::string render_forward_declaration(const reflection_aggregator_t::entry_cont
     return result;
 }
 
-std::string render_tsmp_global(const reflection_aggregator_t::entry_container_t<record_t>& records) {
+std::string render_tsmp_global(
+    const reflection_aggregator_t::entry_container_t<record_t>& records,
+    const reflection_aggregator_t::entry_container_t<enum_t>& enums
+) {
     namespace_wrapper_t global;
     for(const auto& record : records) {
         global.insert(record, record->qualified_namespace);
     }
+    for(const auto& e : enums) {
+        global.insert(e, e->qualified_namespace);
+    }
+
 constexpr auto global_template =
 R"(struct global_t {{
 {}
@@ -345,29 +380,26 @@ renderer_t::renderer_t(std::string header) :
     header(std::move(header))
 {}
 
-std::string render_enum_declaration(const reflection_aggregator_t::entry_container_t<enum_t>& enum_splitter) {
+std::string render_enum_declaration(const reflection_aggregator_t::entry_container_t<enum_t>& enum_declarations) {
     std::string result;
-    for(const auto& decl : enum_splitter) {
-        std::string requirements = "    has_enum_value_", entries;
-        requirements += fmt::format("{}", fmt::join(decl->values, "<E> && \n    has_enum_value_"));
-        requirements += "<E>";
-
-        for(auto value : decl->values) {
-            entries += fmt::format("        enum_entry_description_t<E> {{ \"{0}\", E::{0} }},\n", value);
-        }
-        entries.resize(entries.size()-2); // remove last ",\n"
-
+    for(const auto& decl : enum_declarations) {
+        const std::string entries = transform_join(decl->values, ",\n", [](const std::string& value){
+            return fmt::format("        enum_entry_description_t {{ \"{0}\", value_type::{0} }}", value);
+        });
         result += fmt::format(
 R"(
-template <Enum E> requires
-{}
-struct enum_value_adapter<E> {{
+template <class GlobalNamespaceHelper>
+struct enum_value_adapter_impl<GlobalNamespaceHelper, {0}> {{
+    using value_type = {0};
     constexpr static std::array values {{
-{}
+{1}
     }};
 }};
 
-)", requirements, entries);
+)", 
+            decl->get_name("typename GlobalNamespaceHelper::"),
+            entries
+        );
     }
     return result;
 }
@@ -392,9 +424,10 @@ struct reflect_impl;
 template <class GlobalNamespaceHelper, class T, class Accessor, class Functor, class... Base>
 struct proxy_impl;
 
+template <class GlobalNamespaceHelper, Enum E>
+struct enum_value_adapter_impl;
+
 {}
-
-
 {}
 {}
 }}
@@ -410,7 +443,7 @@ struct proxy_impl;
         code_template,
         render_forward_declaration(aggregator.fetch<data::record_t>()),
         render_forward_declaration(aggregator.fetch<data::enum_t>()),
-        render_tsmp_global(aggregator.fetch<data::record_t>()),
+        render_tsmp_global(aggregator.fetch<data::record_t>(), aggregator.fetch<data::enum_t>()),
         render_record_declaration(aggregator.fetch<data::record_t>()),
         render_enum_declaration(aggregator.fetch<data::enum_t>())
     );

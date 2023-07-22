@@ -43,13 +43,13 @@ struct enum_entry_description_t {
         return entry.value;
     }
 };
- 
-template<Enum E>
-struct enum_value_adapter;
+
+template <Enum E>
+enum_entry_description_t(std::string_view, E) -> enum_entry_description_t<E>;
 
 #ifdef TSMP_INTROSPECT_PASS
-template <class T>
-struct reflect {
+template <class GlobalNamespaceHelper, class T>
+struct reflect_impl {
     constexpr static bool reflectable = false;
     constexpr static auto name()  {
         return "";
@@ -62,12 +62,32 @@ struct reflect {
     }
 };
 
-template<Enum E>
-struct enum_value_adapter {
+template <class GlobalNamespaceHelper, class T, class Accessor, class Functor, class... Base>
+struct proxy_impl : public Base... {};
+
+template<class GlobalNamespaceHelper, Enum E>
+struct enum_value_adapter_impl {
     constexpr static std::array<enum_entry_description_t<E>, 0> values {};
 };
 
+struct global_t {};
+
 #endif
+
+}
+
+#if !defined(TSMP_INTROSPECT_PASS) && defined(TSMP_REFLECTION_ENABLED)
+#include "reflection.hpp"
+#endif
+
+
+namespace tsmp {
+
+template <class T>
+using reflect = reflect_impl<global_t, T>;
+
+template <Enum E>
+using enum_value_adapter = enum_value_adapter_impl<global_t, E>;
 
 template <Enum E>
 constexpr auto enum_values = [](){
@@ -102,16 +122,5 @@ constexpr E enum_from_string(std::string_view name) {
     }
     return it->value;
 }
-
-}
-
-#if !defined(TSMP_INTROSPECT_PASS) && defined(TSMP_REFLECTION_ENABLED)
-#include "reflection.hpp"
-#endif
-
-namespace tsmp {
-
-template <class T>
-using reflect = reflect_impl<global_t, T>;
 
 }

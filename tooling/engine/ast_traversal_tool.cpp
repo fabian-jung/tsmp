@@ -2,29 +2,11 @@
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Tooling/Tooling.h"
-#include <algorithm>
-#include <clang/AST/ASTTypeTraits.h>
-#include <clang/AST/Decl.h>
-#include <clang/AST/DeclBase.h>
-#include <clang/AST/DeclCXX.h>
-#include <clang/AST/DeclTemplate.h>
-#include <clang/AST/NestedNameSpecifier.h>
-#include <clang/AST/PrettyPrinter.h>
-#include <clang/AST/TemplateBase.h>
-#include <clang/AST/Type.h>
-#include <clang/Basic/ExceptionSpecificationType.h>
-#include <clang/Basic/LangOptions.h>
-#include <iostream>
-#include <iterator>
-#include <functional>
-#include <llvm/ADT/APSInt.h>
-#include <llvm/Support/raw_ostream.h>
-#include <memory>
-#include <stdexcept>
 #include "data/aggregator.hpp"
 #include "data/types.hpp"
-#include "fmt/core.h"
 #include "fmt/ostream.h"
+
+#include <iostream>
 
 using namespace clang;
 using namespace clang::ast_matchers;
@@ -64,19 +46,17 @@ std::string get_unqualified_namespace(const clang::NamespaceDecl* decl) {
     );
 }
 
-data::type_t* ast_traversal_tool_t::register_type(const EnumDecl* decl) {
+const data::type_t* ast_traversal_tool_t::register_type(const EnumDecl* decl) {
     if(!decl) return nullptr;
     if(auto it = visited_nodes.find(decl); it != visited_nodes.end()) {
         return it->second;
     }
     const auto name = decl->getDeclName().getAsString();
-    const auto* parent = decl->getParent();
-    std::string qualified_namespace;
-    if(parent->isNamespace()) {
-        qualified_namespace = get_unqualified_namespace(static_cast<const clang::NamespaceDecl *>(parent));
-    }
+    std::string qualified_namespace = get_namespace(decl);
+    
+    auto* underlying_type = register_type(decl->getIntegerType());
 
-    fmt::print("enum analysis for {}{}{} yields values:\n", qualified_namespace, qualified_namespace.empty() ? "" : "::", name);
+    fmt::print("enum analysis for {}{}{} : {} yields values:\n", qualified_namespace, qualified_namespace.empty() ? "" : "::", name, underlying_type->get_name());
     std::vector<std::string> values;
     for(auto enumValue : decl->enumerators()) {
         fmt::print("    {}\n", enumValue->getDeclName().getAsString());
@@ -86,7 +66,8 @@ data::type_t* ast_traversal_tool_t::register_type(const EnumDecl* decl) {
         std::move(name),
         std::move(qualified_namespace),
         decl->isScoped(),
-        std::move(values)
+        std::move(values),
+        underlying_type
     ));
     return it->second; 
 }
@@ -98,13 +79,6 @@ bool is_std_namespace(const DeclContext* ns) {
     }
     if(ns->getDeclKind()==Decl::Kind::Namespace) {
         return is_std_namespace(ns->getParent());
-    }
-    return false;
-}
-
-bool is_nested_type(const CXXRecordDecl* decl) {
-    if(auto parent = decl->getParent()) {
-        return parent->getDeclKind() == clang::Decl::Kind::CXXRecord;
     }
     return false;
 }
@@ -227,7 +201,7 @@ std::vector<data::field_decl_t> ast_traversal_tool_t::field_analysis(const CXXRe
     
     for(const auto& field : decl->fields()) {
         const auto access = field->getAccess();
-        auto* type = register_type(field->getType());
+        const auto* type = register_type(field->getType());
         auto name = field->getNameAsString();
         if(access != AS_public) {
             continue;
@@ -270,7 +244,7 @@ std::string ast_traversal_tool_t::get_name(const clang::Type* type) {
         case clang::Type::TypeClass::Auto:
             return get_qualified_name(type->getContainedAutoType()->getContainedDeducedType()->getDeducedType());
         case clang::Type::TypeClass::Decltype:
-            return get_qualified_name(type->getAs<DecltypeType>()->getUnderlyingType());
+            return get_qualified_name(type->getAs<const DecltypeType>()->getUnderlyingType());
         case clang::Type::TypeClass::Builtin:
             {
                 LangOptions lo;
@@ -371,7 +345,7 @@ data::cv_qualifier_t from_qual(clang::Qualifiers quals) {
     }
 }
 
-data::type_t* ast_traversal_tool_t::register_type(const clang::CXXRecordDecl* record) {
+const data::type_t* ast_traversal_tool_t::register_type(const clang::CXXRecordDecl* record) {
     if(record == nullptr) return nullptr;
     if(auto it = visited_nodes.find(record); it != visited_nodes.end()) {
         return it->second;
@@ -385,24 +359,24 @@ data::type_t* ast_traversal_tool_t::register_type(const clang::CXXRecordDecl* re
         return nullptr;
     }
     auto qualified_namespace = get_namespace(record);
-    auto* record_decl = aggregator.create<data::record_t>(name, qualified_namespace);
-    visited_nodes.emplace(record, record_decl);
-
-    record_decl->is_struct = record->isStruct();
-    // record_decl.is_nested_type = is_nested_type(decl); // TODO
+    
+    auto* position = aggregator.allocate<data::record_t>();
+    position = new (data::record_t) (name, qualified_namespace, record->isStruct());
+    visited_nodes.emplace(record, position);
+    position->fields = field_analysis(record);
+    position->functions = method_analysis(record, name);
+    position->template_arguments = template_argument_analysis(record);
+    const data::type_t* record_decl = aggregator.emplace(position);
+   
     fmt::print(
-        "member analysis for {} {}\n",
-        record_decl->is_struct ? "struct" : "class",
+        "member analysis for {}\n",
         record_decl->get_name()
     );
-    record_decl->template_arguments = template_argument_analysis(record);
-    record_decl->fields = field_analysis(record);
-    record_decl->functions = method_analysis(record, name);
-    
+
     return record_decl;
 }
 
-data::type_t* ast_traversal_tool_t::register_type(const clang::Type* type) {
+const data::type_t* ast_traversal_tool_t::register_type(const clang::Type* type) {
     if(auto it = visited_nodes.find(type); it != visited_nodes.end()) {
         return it->second;
     }
@@ -453,7 +427,7 @@ data::type_t* ast_traversal_tool_t::register_type(const clang::Type* type) {
     }
 }
 
-data::type_t* ast_traversal_tool_t::register_type(const clang::QualType& qtype) {
+const data::type_t* ast_traversal_tool_t::register_type(const clang::QualType& qtype) {
     auto [type, qualifiers] = qtype.split();
     const std::uint32_t cv_flags = 0b1*qualifiers.hasConst() || 0b10*qualifiers.hasVolatile();
     auto cv_qualifier = [](std::uint32_t cv){

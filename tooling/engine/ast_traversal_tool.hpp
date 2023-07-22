@@ -13,8 +13,8 @@ public:
     void run(clang::tooling::ClangTool& tool);
     data::reflection_aggregator_t state() const;
 
-    data::type_t* register_type(const clang::EnumDecl* decl);
-    data::type_t* register_type(const clang::CXXRecordDecl* record);
+    const data::type_t* register_type(const clang::EnumDecl* decl);
+    const data::type_t* register_type(const clang::CXXRecordDecl* record);
 
 private:
 
@@ -33,11 +33,11 @@ private:
 
     std::string get_namespace(const clang::DeclContext* context, bool qualified = false);
     
-    data::type_t* register_type(const clang::Type* type);
-    data::type_t* register_type(const clang::QualType& qtype);
+    const data::type_t* register_type(const clang::Type* type);
+    const data::type_t* register_type(const clang::QualType& qtype);
 
     data::reflection_aggregator_t aggregator;
-    std::map<const void*, data::type_t*> visited_nodes;
+    std::map<const void*, const data::type_t*> visited_nodes;
 };
 
 }
