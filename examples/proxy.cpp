@@ -42,7 +42,7 @@ struct late_binding_example {
 
     virtual void foo() {
         std::cout << "late_binding_example::foo() called\n";
-        this->bar();
+        bar();
     }
 
     virtual void bar() {

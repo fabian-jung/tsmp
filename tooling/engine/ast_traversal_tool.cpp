@@ -4,6 +4,7 @@
 #include "clang/Tooling/Tooling.h"
 #include "data/aggregator.hpp"
 #include "data/types.hpp"
+#include "fmt/core.h"
 #include "fmt/ostream.h"
 
 #include <iostream>
@@ -156,15 +157,19 @@ std::vector<data::template_argument_t> ast_traversal_tool_t::template_argument_a
             if(arg->isTemplateParameterPack())  {
                 fmt::print("Template argument {} of template parameter pack type. Fall back to duck-type identification. May be implemented later.\n", value);
             }
+            std::string name = arg->getName().str();
+            if(name.empty()) {
+                name = fmt::format("tsmp_template_argument_{}", i);
+            }
             if(const auto* type_decl = dynamic_cast<TemplateTypeParmDecl*>(arg)) {
-                fmt::print("type template arg. {} {} {}\n", "typename", arg->getName().str(), value);
-                result.emplace_back(data::template_argument_t{ "typename", arg->getName().str(), value, arg->isTemplateParameterPack() });
+                fmt::print("type template arg. {} {} {}\n", "typename", name, value);
+                result.emplace_back(data::template_argument_t{ "typename", name, value, arg->isTemplateParameterPack() });
                 if(param.getKind() == clang::TemplateArgument::ArgKind::Type) {
                     register_type(param.getAsType()->getAsCXXRecordDecl());
                 }
             } else if(const auto* value_decl = dynamic_cast<NonTypeTemplateParmDecl*>(arg)) {
-                fmt::print("value template arg: {} {} {}\n", value_decl->getType().getAsString(), value_decl->getName().str(), value);
-                result.emplace_back(data::template_argument_t{ value_decl->getType().getAsString(), arg->getName().str(), value });
+                fmt::print("value template arg: {} {} {}\n", value_decl->getType().getAsString(), name, value);
+                result.emplace_back(data::template_argument_t{ value_decl->getType().getAsString(), name, value });
             } else {
                 fmt::print("Template argument type not implemented.\n");
             }
