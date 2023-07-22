@@ -61,6 +61,11 @@ struct foo_t {
     constexpr void call9(const int* i) const {
         fmt::print("foo::call9({}) was called;\n", *i);
     }
+
+    constexpr void call9(const int* i) {
+        fmt::print("foo::call9({}) was called;\n", *i);
+    }
+
 };
 
 int main(int, const char**) {
@@ -68,5 +73,6 @@ int main(int, const char**) {
     std::invoke(std::get<0>(functions).ptr, foo_t{});
     std::invoke(std::get<1>(functions).ptr, foo_t{});
     std::invoke(std::get<2>(functions).ptr, foo_t{});
+
     return 0;
 }

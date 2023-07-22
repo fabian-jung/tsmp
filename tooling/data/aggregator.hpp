@@ -64,7 +64,7 @@ private:
         (free(fetch<T>()), ...);
     }
 
-    entries_t<record_t, enum_t, builtin_t, reference_t, pointer_t, cv_qualified_type_t> m_entries; 
+    entries_t<record_t, enum_t, builtin_t, reference_t, pointer_t, cv_qualified_type_t, constant_array_t> m_entries; 
 };
 
 }

@@ -55,9 +55,20 @@ const data::type_t* ast_traversal_tool_t::register_type(const EnumDecl* decl) {
     const auto name = decl->getDeclName().getAsString();
     std::string qualified_namespace = get_namespace(decl);
     
-    auto* underlying_type = register_type(decl->getIntegerType());
+    std::optional<const data::type_t*> underlying_type = [this](const EnumDecl* decl) -> std::optional<const data::type_t*> {
+        if(decl->isFixed()) {
+            return register_type(decl->getIntegerType());
+        } else {
+            return std::nullopt;
+        }
+    }(decl);
 
-    fmt::print("enum analysis for {}{}{} : {} yields values:\n", qualified_namespace, qualified_namespace.empty() ? "" : "::", name, underlying_type->get_name());
+    fmt::print(
+        "enum analysis for {}{}{}{} yields values:\n",
+        qualified_namespace, qualified_namespace.empty() ? "" : "::",
+        name,
+        underlying_type ? fmt::format(" : {}", underlying_type.value()->get_name()) : ""
+    );
     std::vector<std::string> values;
     for(auto enumValue : decl->enumerators()) {
         fmt::print("    {}\n", enumValue->getDeclName().getAsString());
@@ -212,6 +223,7 @@ std::vector<data::field_decl_t> ast_traversal_tool_t::field_analysis(const CXXRe
             continue;
         }
         if(name.size() > 0) {
+
             fmt::print("-field: {} {}\n", type->get_name(), name);
             result.emplace_back(data::field_decl_t{std::move(name), type});
         }
@@ -404,7 +416,7 @@ const data::type_t* ast_traversal_tool_t::register_type(const clang::Type* type)
                 return aggregator.create<data::builtin_t>(type->getAs<BuiltinType>()->getName(policy).str());
             }
         case clang::Type::TypeClass::Typedef:
-            return register_type(type->getAs<TypedefType>()->desugar());
+            return register_type(type->getAs<TypedefType>()->desugar().getTypePtr());
         case clang::Type::TypeClass::Pointer: {
             auto [t, qual] = type->getPointeeType().split();
             return aggregator.create<data::pointer_t>(register_type(t), from_qual(qual));
@@ -426,6 +438,10 @@ const data::type_t* ast_traversal_tool_t::register_type(const clang::Type* type)
         }
         case clang::Type::TypeClass::TemplateSpecialization:
             return register_type(type->getAsCXXRecordDecl());
+        case clang::Type::TypeClass::ConstantArray: {
+            const auto* array_type = static_cast<const ConstantArrayType*>(type->getAsArrayTypeUnsafe());
+            return aggregator.create<data::constant_array_t>(register_type(array_type->getElementType()), array_type->getSize().getZExtValue());
+        }
         default:
             fmt::print(std::cerr, "trouble identifying {}\n", type->getTypeClassName());
             return nullptr;
@@ -499,7 +515,8 @@ std::vector<data::function_decl_t> ast_traversal_tool_t::method_analysis(const C
             name != decl_name && // Addresses of constructors can not be taken, therefore we can not reflect them
             name.at(0) != '~' && // Addresses of constructors can not be taken, therefore we can not reflect them
             name.find("operator ") != 0 && // TODO: reflecting conversion operators may be added later
-            access == AS_public
+            access == AS_public &&
+            method->isDeleted() == false
         ) {
             const bool is_noexcept = method->getExceptionSpecType() == ExceptionSpecificationType::EST_BasicNoexcept;
 

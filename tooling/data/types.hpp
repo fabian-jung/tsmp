@@ -124,6 +124,26 @@ struct pointer_t : public type_t {
     }
 };
 
+struct constant_array_t : public type_t {
+    const type_t* type;
+    std::size_t size;
+
+    constant_array_t(
+        const type_t* type,
+        std::size_t size
+    ) : 
+        type(type),
+        size(size)
+    {}
+
+    std::string get_name(std::string prefix = "", namespace_option_t namespace_option = data::namespace_option_t::unqualified) const override {
+        return fmt::format(
+            "{}[{}]",
+            type->get_name(prefix, namespace_option),
+            size
+        );
+    }
+};
 
 struct cv_qualified_type_t : public type_t {
     const type_t* type;
@@ -178,14 +198,14 @@ struct reference_t : public type_t {
 struct enum_t : public decl_t {
     bool scoped;
     std::vector<std::string> values;
-    const type_t* underlying_type;
+    std::optional<const type_t*> underlying_type;
 
     enum_t(
         std::string name,
         std::string qualified_namespace,
         bool scoped,
         std::vector<std::string> values,
-        const type_t* underlying_type
+        std::optional<const type_t*> underlying_type
     ) : 
         decl_t(std::move(name),
         std::move(qualified_namespace)),
@@ -194,8 +214,6 @@ struct enum_t : public decl_t {
         underlying_type(underlying_type)
     {}
 };
-
-
 
 struct field_decl_t {
     std::string name;
