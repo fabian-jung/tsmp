@@ -6,6 +6,7 @@
 #include "fmt/ostream.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <iterator>
 #include <map>
@@ -143,6 +144,10 @@ std::string render_class_definition(const data::record_t* record) {
 std::string render_forward_declaration(const reflection_aggregator_t::entry_container_t<record_t>& records) {
     std::string result;
     for(const auto& record : records) {
+        if(record->parent != nullptr) {
+             // skip nested classes, they dont need a forward declaration because the name is accessible via the parent
+            continue;
+        }
         std::string declaration = render_class_definition(record);
         if(record->qualified_namespace.empty()) {
             result += fmt::format("{}\n", declaration);
@@ -177,6 +182,10 @@ std::string render_tsmp_global(
 ) {
     namespace_wrapper_t global;
     for(const auto& record : records) {
+        if(record->parent != nullptr) {
+            // skip nested classes, they dont need an alias in global_t because the name is accessible via the parent
+            continue;
+        }
         global.insert(record, record->qualified_namespace);
     }
     for(const auto& e : enums) {
@@ -413,6 +422,8 @@ R"(#pragma once
 #include <tuple>
 #include <stdbool.h>
 #include <cstdint>
+#include <cstddef>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wgnu-redeclared-enum"
 {}

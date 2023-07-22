@@ -6,7 +6,6 @@
 #include "data/types.hpp"
 #include "fmt/core.h"
 #include "fmt/ostream.h"
-
 #include <iostream>
 
 using namespace clang;
@@ -165,9 +164,6 @@ std::vector<data::template_argument_t> ast_traversal_tool_t::template_argument_a
             auto param = params[i];
             const auto value = get_name(param);
 
-            if(arg->isTemplateParameterPack())  {
-                fmt::print("Template argument {} of template parameter pack type. Fall back to duck-type identification. May be implemented later.\n", value);
-            }
             std::string name = arg->getName().str();
             if(name.empty()) {
                 name = fmt::format("tsmp_template_argument_{}", i);
@@ -180,7 +176,7 @@ std::vector<data::template_argument_t> ast_traversal_tool_t::template_argument_a
                 }
             } else if(const auto* value_decl = dynamic_cast<NonTypeTemplateParmDecl*>(arg)) {
                 fmt::print("value template arg: {} {} {}\n", value_decl->getType().getAsString(), name, value);
-                result.emplace_back(data::template_argument_t{ value_decl->getType().getAsString(), name, value });
+                result.emplace_back(data::template_argument_t{ fmt::format("::{}", value_decl->getType().getAsString()), name, value });
             } else {
                 fmt::print("Template argument type not implemented.\n");
             }
@@ -362,35 +358,39 @@ data::cv_qualifier_t from_qual(clang::Qualifiers quals) {
     }
 }
 
-const data::type_t* ast_traversal_tool_t::register_type(const clang::CXXRecordDecl* record) {
-    if(record == nullptr) return nullptr;
-    if(auto it = visited_nodes.find(record); it != visited_nodes.end()) {
+const data::type_t* ast_traversal_tool_t::register_type(const clang::CXXRecordDecl* record_decl) {
+    if(record_decl == nullptr) return nullptr;
+    if(auto it = visited_nodes.find(record_decl); it != visited_nodes.end()) {
         return it->second;
     }
-    std::string name = record->getName().str();
+    std::string name = record_decl->getName().str();
     if(name.empty()) {
         std::string s;
         llvm::raw_string_ostream stream(s);
-        record->dump(stream);
+        record_decl->dump(stream);
         fmt::print("Can not reflect unnamed type:{}\n", s);
         return nullptr;
     }
-    auto qualified_namespace = get_namespace(record);
+    auto qualified_namespace = get_namespace(record_decl);
     
-    auto* position = aggregator.allocate<data::record_t>();
-    position = new (data::record_t) (name, qualified_namespace, record->isStruct());
-    visited_nodes.emplace(record, position);
-    position->fields = field_analysis(record);
-    position->functions = method_analysis(record, name);
-    position->template_arguments = template_argument_analysis(record);
-    const data::type_t* record_decl = aggregator.emplace(position);
+    auto* record = aggregator.allocate<data::record_t>();
+    record = new (data::record_t) (name, qualified_namespace, record_decl->isStruct());
+    visited_nodes.emplace(record_decl, record);
+    record->fields = field_analysis(record_decl);
+    record->functions = method_analysis(record_decl, name);
+    record->template_arguments = template_argument_analysis(record_decl);
+    if(auto parent = record_decl->getParent(); parent->getDeclKind() == clang::Decl::Kind::CXXRecord) {
+        record->parent = register_type(static_cast<const CXXRecordDecl*>(parent));
+    }
+
+    const data::type_t* result = aggregator.emplace(record);
    
     fmt::print(
         "member analysis for {}\n",
-        record_decl->get_name()
+        result->get_name()
     );
 
-    return record_decl;
+    return result;
 }
 
 const data::type_t* ast_traversal_tool_t::register_type(const clang::Type* type) {
@@ -442,6 +442,10 @@ const data::type_t* ast_traversal_tool_t::register_type(const clang::Type* type)
             const auto* array_type = static_cast<const ConstantArrayType*>(type->getAsArrayTypeUnsafe());
             return aggregator.create<data::constant_array_t>(register_type(array_type->getElementType()), array_type->getSize().getZExtValue());
         }
+        case clang::Type::TypeClass::Paren:
+            return register_type(type->getAs<ParenType>()->desugar());
+        case clang::Type::TypeClass::FunctionProto:
+            return aggregator.create<data::builtin_t>("void");
         default:
             fmt::print(std::cerr, "trouble identifying {}\n", type->getTypeClassName());
             return nullptr;

@@ -3,6 +3,7 @@
 #include "fmt/core.h"
 #include <algorithm>
 #include <compare>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <variant>
@@ -263,12 +264,12 @@ struct builtin_t : public type_t {
 };
 
 struct record_t : public decl_t {
-    std::vector<template_argument_t> template_arguments {}; // TODO needs to be moved out. Emtpy templates are broken if not.
-    cv_qualifier_t cv_qualifier; //TODO remove?
+    std::vector<template_argument_t> template_arguments;
     std::vector<field_decl_t> fields;
     std::vector<function_decl_t> functions;
     bool is_struct = false;
-
+    const type_t* parent = nullptr;
+    
     record_t(
         std::string name,
         std::string qualified_namespace,
@@ -281,7 +282,12 @@ struct record_t : public decl_t {
 
     std::string get_name(std::string prefix = "", namespace_option_t namespace_option = data::namespace_option_t::unqualified) const override {
         auto template_parameter_list = template_arguments.empty() ? "" : fmt::format("<{}>", transform_join(template_arguments, ", ", [prefix](const template_argument_t& arg) { return arg.get_value(prefix); }));
-        std::string namespace_str = get_namespace(namespace_option);
+        std::string namespace_str;
+        if(parent != nullptr) {
+            namespace_str = fmt::format("{}{}{}", namespace_str, namespace_str.empty() ? "" : "::", parent->get_name("", namespace_option_t::unqualified));
+        } else {
+            namespace_str = get_namespace(namespace_option);
+        }
         auto decl = fmt::format(
             "{}{}{}{}{}",
             prefix,
@@ -291,10 +297,7 @@ struct record_t : public decl_t {
             name
         );
         return fmt::format(
-            "{}{}{}{}{}",
-            cv_qualifier == cv_qualifier_t::const_ ? "const " : "",
-            cv_qualifier == cv_qualifier_t::volatile_ ? "volatile " : "",
-            cv_qualifier == cv_qualifier_t::const_volatile ? "const volatile " : "",
+            "{}{}",
             decl,
             template_parameter_list
         );
