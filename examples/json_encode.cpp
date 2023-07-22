@@ -12,7 +12,7 @@ int main(int, char*[]) {
         int i { 42 };
         // immutable_t<4> version;
         tsmp::string_literal_t<4> sl { "asdf" };
-        tsmp::immutable_t<tsmp::string_literal_t{"some_string"}> immutable_string;
+        // tsmp::immutable_t<tsmp::string_literal_t{"some_string"}> immutable_string;
         float f { 1337.0f };
         std::string s = "Hello World!";
         struct bar_t {

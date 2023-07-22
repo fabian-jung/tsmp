@@ -41,7 +41,6 @@ TEST_CASE("value proxy test", "[unit]") {
         return std::invoke(base, std::forward<decltype(args)>(args)...);
     }};
 
-    #warning todo access to members ? 
     REQUIRE(foo.accessor.value.a == 0);
     REQUIRE(foo.add(5,2) == 7);
     REQUIRE(foo.inc().a == 1);
@@ -148,7 +147,8 @@ TEST_CASE("shared proxy test", "[unit]") {
 }
 
 TEST_CASE("proxy returning reference test", "[unit]") {
-    auto proxy = tsmp::value_proxy{ std::array<int, 5>{}, tsmp::identity{} };
+    auto proxy = tsmp::value_proxy{ std::vector<int>{ 1 }, tsmp::identity{} };
+    REQUIRE(proxy.accessor.value.front() == 1);
     proxy.front() = 4;
     REQUIRE(proxy.accessor.value.front() == 4);
 }
