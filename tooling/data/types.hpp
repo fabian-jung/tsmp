@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fmt/core.h"
 #include <algorithm>
 #include <compare>
 #include <memory>
@@ -107,10 +108,10 @@ struct decl_t : public type_t {
 };
 
 struct pointer_t : public type_t {
-    type_t* type;
+    const type_t* type;
     cv_qualifier_t cv_qualifier; 
 
-    pointer_t(type_t* type, cv_qualifier_t cv_qualifier) : type(std::move(type)), cv_qualifier(cv_qualifier) {}
+    pointer_t(const type_t* type, cv_qualifier_t cv_qualifier) : type(std::move(type)), cv_qualifier(cv_qualifier) {}
 
     std::string get_name(std::string prefix = "", namespace_option_t namespace_option = data::namespace_option_t::unqualified) const override {
         return fmt::format(
@@ -125,16 +126,16 @@ struct pointer_t : public type_t {
 
 
 struct cv_qualified_type_t : public type_t {
-    type_t* type;
+    const type_t* type;
     cv_qualifier_t cv_qualifier;
 
-    cv_qualified_type_t(type_t* type, cv_qualifier_t cv_qualifier) : 
+    cv_qualified_type_t(const type_t* type, cv_qualifier_t cv_qualifier) : 
         type(std::move(type)),
         cv_qualifier(cv_qualifier)
     {}
 
     std::string get_name(std::string prefix = "", namespace_option_t namespace_option = data::namespace_option_t::unqualified) const override {
-        if(dynamic_cast<pointer_t*>(type) == nullptr) {
+        if(dynamic_cast<const pointer_t*>(type) == nullptr) {
             return fmt::format(
                 "{0}{1}{2}{3}",
                 cv_qualifier == cv_qualifier_t::const_ ? "const " : "",
@@ -155,11 +156,11 @@ struct cv_qualified_type_t : public type_t {
 };
 
 struct reference_t : public type_t {
-    type_t* type;
+    const type_t* type;
     cv_qualifier_t cv_qualifier;
     ref_qualifier_t ref_qualifier;
 
-    reference_t(type_t* type, cv_qualifier_t cv_qualifier, ref_qualifier_t ref_qualifier) : type(std::move(type)), cv_qualifier(cv_qualifier), ref_qualifier(ref_qualifier) {}
+    reference_t(const type_t* type, cv_qualifier_t cv_qualifier, ref_qualifier_t ref_qualifier) : type(std::move(type)), cv_qualifier(cv_qualifier), ref_qualifier(ref_qualifier) {}
 
     std::string get_name(std::string prefix = "", namespace_option_t namespace_option = data::namespace_option_t::unqualified) const override {
         return fmt::format(
@@ -177,53 +178,40 @@ struct reference_t : public type_t {
 struct enum_t : public decl_t {
     bool scoped;
     std::vector<std::string> values;
+    const type_t* underlying_type;
+
     enum_t(
         std::string name,
         std::string qualified_namespace,
         bool scoped,
-        std::vector<std::string> values
+        std::vector<std::string> values,
+        const type_t* underlying_type
     ) : 
         decl_t(std::move(name),
         std::move(qualified_namespace)),
         scoped(scoped),
-        values(std::move(values))
+        values(std::move(values)),
+        underlying_type(underlying_type)
     {}
 };
 
-//TODO remove?
-struct template_specialisation_t : public type_t {
-    type_t *type;
-    std::vector<template_argument_t> arguments;
 
-    template_specialisation_t(type_t* type, std::vector<template_argument_t> arguments) : 
-        type(type),
-        arguments(std::move(arguments))
-    {}
-
-    std::string get_name(std::string prefix = "", namespace_option_t namespace_option = data::namespace_option_t::unqualified) const override {
-        return fmt::format(
-            "{}<{}>",
-            type->get_name(prefix, namespace_option),
-            transform_join(arguments, ", ", [prefix](const template_argument_t& arg) { return arg.get_value(prefix); })
-        );
-    }
-};
 
 struct field_decl_t {
     std::string name;
-    type_t* type;
+    const type_t* type;
 };
 
 struct parameter_decl_t {
     std::string name;
-    type_t* type;
+    const type_t* type;
     bool is_pack = false;
 };
 
 struct function_decl_t {
     std::string name;
     std::vector<parameter_decl_t> parameter;
-    type_t* result; 
+    const type_t* result; 
     bool is_virtual = false;
     bool is_const = false;
     ref_qualifier_t ref_qualifier = ref_qualifier_t::nothing;
@@ -265,9 +253,12 @@ struct record_t : public decl_t {
 
     record_t(
         std::string name,
-        std::string qualified_namespace
+        std::string qualified_namespace,
+        bool is_struct
     ) :
-        decl_t(std::move(name), std::move(qualified_namespace))
+        decl_t(std::move(name),
+        std::move(qualified_namespace)),
+        is_struct(is_struct)
     {}
 
     std::string get_name(std::string prefix = "", namespace_option_t namespace_option = data::namespace_option_t::unqualified) const override {
