@@ -94,6 +94,7 @@ struct decl_t : public type_t {
             case namespace_option_t::none:
                 return "";
         }
+        return "";
     }
 
     std::string get_name(std::string prefix = "", namespace_option_t namespace_option = data::namespace_option_t::unqualified) const override {
@@ -327,6 +328,7 @@ struct formatter<data::ref_qualifier_t> {
             case data::ref_qualifier_t::rvalue:
                 return fmt::format_to(ctx.out(), "&&");
         }
+        return ctx.out();
     }
 };
 

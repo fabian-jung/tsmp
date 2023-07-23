@@ -93,26 +93,29 @@ struct fmt::formatter<namespace_wrapper_t>
     auto format(namespace_wrapper_t const& arg, FormatContext& ctx) const
     {
         std::string ns = arg.full_namespace();
+        std::set<std::string> definitions;
         for(const auto& record: arg.records) {
             std::string template_definition;
+            std::string record_definition;
             if(!record->template_arguments.empty()) {
-                fmt::format_to(ctx.out(), "    template <{0}>\n", fmt::join(record->template_arguments, ", "));
+                fmt::format_to(std::back_inserter(record_definition), "    template <{0}>\n", fmt::join(record->template_arguments, ", "));
                 std::vector<std::string_view> names;
                 std::transform(record->template_arguments.begin(), record->template_arguments.end(), std::back_inserter(names), [](const auto& arg) -> std::string_view {
                     return arg.name;
                 });
                 template_definition = fmt::format("<{}>", fmt::join(names, ", "));
             }
-            fmt::format_to(ctx.out(), "    using {0} = {1}::{0}{2};\n", record->name, ns, template_definition);
+            fmt::format_to(std::back_inserter(record_definition), "    using {0} = {1}::{0}{2};\n", record->name, ns, template_definition);
+            definitions.emplace(record_definition);
         }
         for(const auto& e: arg.enums) {
             std::string template_definition;
-            fmt::format_to(ctx.out(), "    using {0} = {1}::{0};\n", e->name, ns);
+            definitions.emplace(fmt::format("    using {0} = {1}::{0};\n", e->name, ns));
         }
         for(const auto& child: arg.children) {
-            fmt::format_to(ctx.out(), "    struct {} {{\n{}    }};\n", child.first, *child.second);
+            definitions.emplace(fmt::format("    struct {} {{\n{}    }};\n", child.first, *child.second));
         }
-        return ctx.out();
+        return fmt::format_to(ctx.out(), "{}", fmt::join(definitions, "\n"));
     }
 };
 
@@ -142,7 +145,7 @@ std::string render_class_definition(const data::record_t* record) {
 }
 
 std::string render_forward_declaration(const reflection_aggregator_t::entry_container_t<record_t>& records) {
-    std::string result;
+    std::set<std::string> result;
     for(const auto& record : records) {
         if(record->parent != nullptr) {
              // skip nested classes, they dont need a forward declaration because the name is accessible via the parent
@@ -150,12 +153,12 @@ std::string render_forward_declaration(const reflection_aggregator_t::entry_cont
         }
         std::string declaration = render_class_definition(record);
         if(record->qualified_namespace.empty()) {
-            result += fmt::format("{}\n", declaration);
+            result.emplace(declaration);
         } else {
-            result += fmt::format("namespace {} {{ {} }}\n", record->qualified_namespace, declaration);
+            result.emplace(fmt::format("namespace {} {{ {} }}", record->qualified_namespace, declaration));
         }
     }
-    return result;
+    return fmt::format("{}", fmt::join(result, "\n"));
 }
 
 std::string render_forward_declaration(const reflection_aggregator_t::entry_container_t<enum_t>& enums) {
