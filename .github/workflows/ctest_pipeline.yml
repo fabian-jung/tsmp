@@ -102,13 +102,19 @@ jobs:
       run: |
         cat <<EOF > main.cpp
         #include <catch2/catch_all.hpp>
-        #include <tsmp/json.hpp>
+        //#include <tsmp/json.hpp>
+        #include <tsmp/reflect.hpp>
+
+        struct foo_t {
+            std::string hello = "world";
+        };
 
         TEST_CASE("FetchContent integration test", "[unit]") {
-            struct {
-                std::string hello = "world";
-            } hello_world;
-            REQUIRE(tsmp::to_json(hello_world) == R"({"hello":"world"})");
+            foo_t hello_world;
+            //REQUIRE(tsmp::to_json(hello_world) == R"({"hello":"world"})");
+            REQUIRE(std::get<0>(tsmp::reflect<foo_t>::fields()).name == "hello");
+            REQUIRE(hello_world.*(std::get<0>(tsmp::reflect<foo_t>::fields()).ptr) == "world");
+            
         }
         EOF
 
