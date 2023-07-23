@@ -93,7 +93,7 @@ struct fmt::formatter<namespace_wrapper_t>
     auto format(namespace_wrapper_t const& arg, FormatContext& ctx) const
     {
         std::string ns = arg.full_namespace();
-        std::set<std::string> definitions;
+        std::map<std::string, std::string> definitions;
         for(const auto& record: arg.records) {
             std::string template_definition;
             std::string record_definition;
@@ -106,16 +106,19 @@ struct fmt::formatter<namespace_wrapper_t>
                 template_definition = fmt::format("<{}>", fmt::join(names, ", "));
             }
             fmt::format_to(std::back_inserter(record_definition), "    using {0} = {1}::{0}{2};\n", record->name, ns, template_definition);
-            definitions.emplace(record_definition);
+            definitions.emplace(record->name, record_definition);
         }
         for(const auto& e: arg.enums) {
             std::string template_definition;
-            definitions.emplace(fmt::format("    using {0} = {1}::{0};\n", e->name, ns));
+            definitions.emplace(e->name, fmt::format("    using {0} = {1}::{0};\n", e->name, ns));
+        }
+        for(const auto& [name, def] : definitions) {
+            fmt::format_to(ctx.out(), "{}\n", def);
         }
         for(const auto& child: arg.children) {
-            definitions.emplace(fmt::format("    struct {} {{\n{}    }};\n", child.first, *child.second));
+            fmt::format_to(ctx.out(), "    struct {} {{\n{}    }};\n", child.first, *child.second);
         }
-        return fmt::format_to(ctx.out(), "{}", fmt::join(definitions, "\n"));
+        return ctx.out();
     }
 };
 

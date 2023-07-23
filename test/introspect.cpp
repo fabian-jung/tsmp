@@ -56,13 +56,13 @@ TEST_CASE("compile-time get member attribute test", "[unit]") {
     tsmp::introspect foo_introspecter(foo);
 
     REQUIRE(foo.i == 0);
-    foo_introspecter.get<"i">() = 13;
+    foo_introspecter.get<0>() = 13;
     REQUIRE(foo.i == 13);
     foo_introspecter.get<"i">() = 42;
     REQUIRE(foo.i == 42);
 
     REQUIRE(foo.f == Catch::Approx(0.0f));
-    foo_introspecter.get<0>() = 13.0f;
+    foo_introspecter.get<1>() = 13.0f;
     REQUIRE(foo.f == Catch::Approx(13.0f));
     foo_introspecter.get<"f">() = 42.0f;
     REQUIRE(foo.f == Catch::Approx(42.0f));
