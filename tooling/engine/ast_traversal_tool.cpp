@@ -206,6 +206,7 @@ std::string ast_traversal_tool_t::get_nested_name_specifier(const NestedNameSpec
         case clang::NestedNameSpecifier::Super:
             return "__super";
     }
+    return "";
 }
 
 std::vector<data::field_decl_t> ast_traversal_tool_t::field_analysis(const CXXRecordDecl* decl) {
@@ -495,6 +496,7 @@ auto to_ref(clang::RefQualifierKind clang){
         case clang::RefQualifierKind::RQ_None:
             return data::ref_qualifier_t::nothing;
     }
+    return data::ref_qualifier_t::nothing;
 };
 
 std::vector<data::parameter_decl_t> ast_traversal_tool_t::parameter_analysis(const clang::CXXMethodDecl * method) {
