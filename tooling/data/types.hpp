@@ -26,7 +26,7 @@ inline std::string remove_substring(std::string str, std::string removal) {
 
 
 template<class Range, class Fn>
-auto transform_join(Range range, std::string delimiter, Fn fn) {
+auto transform_join(const Range& range, std::string delimiter, Fn fn) {
     std::string result;
     for(const auto& elem : range) {
         result += fmt::format("{}{}", std::invoke(fn, elem), delimiter);

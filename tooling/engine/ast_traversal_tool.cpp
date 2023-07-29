@@ -374,9 +374,8 @@ const data::type_t* ast_traversal_tool_t::register_type(const clang::CXXRecordDe
     }
     auto qualified_namespace = get_namespace(record_decl);
     
-    auto* record = aggregator.allocate<data::record_t>();
-    record = new (data::record_t) (name, qualified_namespace, record_decl->isStruct());
-    visited_nodes.emplace(record_decl, record);
+    auto record = std::make_unique<data::record_t>(name, qualified_namespace, record_decl->isStruct());
+    visited_nodes.emplace(record_decl, record.get());
     record->fields = field_analysis(record_decl);
     record->functions = method_analysis(record_decl, name);
     record->template_arguments = template_argument_analysis(record_decl);
@@ -384,7 +383,7 @@ const data::type_t* ast_traversal_tool_t::register_type(const clang::CXXRecordDe
         record->parent = register_type(static_cast<const CXXRecordDecl*>(parent));
     }
 
-    const data::type_t* result = aggregator.emplace(record);
+    const data::type_t* result = aggregator.emplace(std::unique_ptr<const data::record_t>(std::move(record)));
    
     fmt::print(
         "member analysis for {}\n",
@@ -501,8 +500,12 @@ auto to_ref(clang::RefQualifierKind clang){
 
 std::vector<data::parameter_decl_t> ast_traversal_tool_t::parameter_analysis(const clang::CXXMethodDecl * method) {
     std::vector<data::parameter_decl_t> result;
+    int i = 0;
     for(const auto* decl : method->parameters()) {
         auto name = decl->getName().str();
+        if(name.empty()) {
+            name = fmt::format("tsmp_parameter_{}", i++);
+        }
         auto* type = register_type(decl->getType());
         auto is_pack = decl->isParameterPack();
         result.emplace_back(data::parameter_decl_t{std::move(name), type, is_pack});
@@ -599,7 +602,7 @@ void ast_traversal_tool_t::run(clang::tooling::ClangTool &tool) {
     tool.run(newFrontendActionFactory(&finder).get());
 }
 
-data::reflection_aggregator_t ast_traversal_tool_t::state() const {
+const data::reflection_aggregator_t& ast_traversal_tool_t::state() const {
     return aggregator;
 }
 

@@ -18,7 +18,7 @@
 #include <vector>
 
 struct namespace_wrapper_t {
-    //TODO delete this abomination by using a proper tree structure
+    //TODO use a proper tree structure
     namespace_wrapper_t* parent = nullptr;
     std::string name;
     std::set<const data::record_t*> records;
@@ -138,7 +138,7 @@ namespace data {
 //     return fmt::format("p{}", ++id);
 // }
 
-std::string render_class_definition(const data::record_t* record) {
+std::string render_class_definition(const data::reflection_aggregator_t::entry_pointer_t<data::record_t>& record) {
     std::string template_declaration;
     if(!record->template_arguments.empty()) {
         template_declaration += fmt::format("template<{}> ", fmt::join(record->template_arguments, ", ") );
@@ -192,10 +192,10 @@ std::string render_tsmp_global(
             // skip nested classes, they dont need an alias in global_t because the name is accessible via the parent
             continue;
         }
-        global.insert(record, record->qualified_namespace);
+        global.insert(record.get(), record->qualified_namespace);
     }
     for(const auto& e : enums) {
-        global.insert(e, e->qualified_namespace);
+        global.insert(e.get(), e->qualified_namespace);
     }
 
 constexpr auto global_template =
@@ -247,14 +247,11 @@ std::string render_function_description(const std::vector<function_decl_t>& func
 
 std::string render_proxy_functions(const std::vector<function_decl_t>& functions) {
     std::string result;
-    for(auto function : functions) {
+    for(const auto& function : functions) {
         if(function.name == "~") continue;      
         std::vector<std::string> param_list;
         std::uint64_t placeholder_id = 0;
         for(auto& p : function.parameter) {
-            if(p.name.empty()) {
-                p.name = fmt::format("tsmp_placeholder_{}", ++placeholder_id);
-            }
             if(auto ref = dynamic_cast<const data::reference_t*>(p.type); ref != nullptr && ref->ref_qualifier == data::ref_qualifier_t::lvalue) {
                 param_list.emplace_back(p.name);
             } else {
@@ -358,7 +355,7 @@ struct reflect<{0}> {{
 )";
 
     std::string result;
-    for(auto record : records) {
+    for(const auto& record : records) {
         const std::string fields = render_field_description(record->fields);
         const std::string functions = render_function_description(record->functions);
         const std::string proxy_functions = render_proxy_functions(record->functions);
@@ -454,7 +451,7 @@ struct enum_value_adapter_impl;
 
     fmt::print(
         "List of records to be rendered:\n{}\n",
-        transform_join(aggregator.fetch<record_t>(), "\n", [](const auto* record){ return record->get_name("typename GlobalNamespaceHelper::"); })
+        transform_join(aggregator.fetch<record_t>(), "\n", [](const auto& record){ return record->get_name("typename GlobalNamespaceHelper::"); })
     );
 
     fmt::print(

@@ -11,7 +11,7 @@ class ast_traversal_tool_t {
 public:
     
     void run(clang::tooling::ClangTool& tool);
-    data::reflection_aggregator_t state() const;
+    const data::reflection_aggregator_t& state() const;
 
     const data::type_t* register_type(const clang::EnumDecl* decl);
     const data::type_t* register_type(const clang::CXXRecordDecl* record);
