@@ -6,6 +6,8 @@
 #include "data/types.hpp"
 #include "fmt/core.h"
 #include "fmt/ostream.h"
+#include <algorithm>
+#include <clang/AST/DeclTemplate.h>
 #include <iostream>
 
 using namespace clang;
@@ -14,21 +16,6 @@ using namespace clang::tooling;
 using MatchFinder = clang::ast_matchers::MatchFinder;
 
 namespace engine {
-
-std::string get_qualified_namespace(const clang::NamespaceDecl* decl) {
-    if(!decl) return "";
-    std::string name = decl->getName().str();
-    if(decl->isInlineNamespace()) {
-        name = "inline "+name;
-    }
-    if(auto parent = decl->getParent()) {
-        if(parent->getDeclKind() == Decl::Kind::TranslationUnit) {
-            return name;
-        }
-    }
-    auto parent_namespace = get_qualified_namespace(static_cast<const clang::NamespaceDecl*>(decl->getParent()));
-    return fmt::format("{}{}{}", parent_namespace, parent_namespace.empty() ? "": "::", name);
-}
 
 std::string get_unqualified_namespace(const clang::NamespaceDecl* decl) {
     if(!decl) return "";
@@ -83,57 +70,6 @@ const data::type_t* ast_traversal_tool_t::register_type(const EnumDecl* decl) {
     return it->second; 
 }
 
-bool is_std_namespace(const DeclContext* ns) {
-    if(!ns) return false;
-    if(ns->isStdNamespace()) {
-        return true;
-    }
-    if(ns->getDeclKind()==Decl::Kind::Namespace) {
-        return is_std_namespace(ns->getParent());
-    }
-    return false;
-}
-
-bool is_forward_declarable(const CXXRecordDecl* decl) {
-    if(!decl) {
-        return true;
-    }
-    if(decl->getName().empty()) {
-        // unamed types (e.g. Lambdas or ad-hoc classes) can not be forward declared because they have no name
-        return false;
-    }
-    const auto* specialization = dynamic_cast<const ClassTemplateSpecializationDecl*>(decl);
-    if(specialization) {
-        const auto params = specialization->getTemplateArgs().asArray();
-        const auto args = specialization->getSpecializedTemplate()->getTemplateParameters()->asArray();
-        if(args.size() != params.size()) {
-            // forward declaration of partial template specialization is not possible
-            return false;
-        }
-        for(int i = 0; i < args.size(); ++i) {
-            auto arg = args[i];
-            auto param = params[i];
-            if(param.getKind() == clang::TemplateArgument::Type && !is_forward_declarable(param.getAsType()->getAsCXXRecordDecl())) {
-                return false;
-            }
-            if(!dynamic_cast<TemplateTypeParmDecl*>(arg))  {
-                // specialization for non-trivial, non-type template arguments is not yet implemented
-                if(param.getKind() == clang::TemplateArgument::Integral) {
-                    continue;
-                }
-                return false;
-            }
-        }
-    }
-
-    if(auto parent = decl->getParent()) {
-        if(parent->isNamespace() || parent->getDeclKind() == clang::Decl::Kind::TranslationUnit) {
-            return true;
-        }
-    }
-    return false;
-}
-
 std::string ast_traversal_tool_t::get_name(const clang::TemplateArgument& argument) {
     std::string result;
     if(argument.getKind() == clang::TemplateArgument::Integral) {
@@ -169,14 +105,20 @@ std::vector<data::template_argument_t> ast_traversal_tool_t::template_argument_a
                 name = fmt::format("tsmp_template_argument_{}", i);
             }
             if(const auto* type_decl = dynamic_cast<TemplateTypeParmDecl*>(arg)) {
-                fmt::print("type template arg. {} {} {}\n", "typename", name, value);
                 result.emplace_back(data::template_argument_t{ "typename", name, value, arg->isTemplateParameterPack() });
                 if(param.getKind() == clang::TemplateArgument::ArgKind::Type) {
                     register_type(param.getAsType()->getAsCXXRecordDecl());
                 }
             } else if(const auto* value_decl = dynamic_cast<NonTypeTemplateParmDecl*>(arg)) {
-                fmt::print("value template arg: {} {} {}\n", value_decl->getType().getAsString(), name, value);
-                result.emplace_back(data::template_argument_t{ value_decl->getType().getAsString(), name, value });
+                auto type_name = register_type(value_decl->getType())->get_name("::");
+                result.emplace_back(data::template_argument_t{ type_name, name, value });
+            } else if(const auto* template_template_decl = dynamic_cast<TemplateTemplateParmDecl*>(arg)) {
+                std::vector<data::template_argument_t> template_template_args;
+                for(auto p : template_template_decl->getTemplateParameters()->asArray()) {
+                    template_template_args.emplace_back(data::template_argument_t{ "typename", p->getDeclName().getAsString(), "", p->isTemplateParameterPack() });
+                }
+                const bool is_pack = arg->isTemplateParameterPack();
+                result.emplace_back(data::template_argument_t{ "typename", name, value, is_pack, std::move(template_template_args) });
             } else {
                 fmt::print("Template argument type not implemented.\n");
             }
@@ -213,12 +155,13 @@ std::vector<data::field_decl_t> ast_traversal_tool_t::field_analysis(const CXXRe
     std::vector<data::field_decl_t> result;
     
     for(const auto& field : decl->fields()) {
-        const auto access = field->getAccess();
-        const auto* type = register_type(field->getType());
-        auto name = field->getNameAsString();
-        if(access != AS_public) {
+        if(field->getAccess() != AS_public) {
             continue;
         }
+        
+        const auto* type = register_type(field->getType());
+        auto name = field->getNameAsString();
+
         if(name.size() > 0) {
 
             fmt::print("-field: {} {}\n", type->get_name(), name);
@@ -375,21 +318,21 @@ const data::type_t* ast_traversal_tool_t::register_type(const clang::CXXRecordDe
     auto qualified_namespace = get_namespace(record_decl);
     
     auto record = std::make_unique<data::record_t>(name, qualified_namespace, record_decl->isStruct());
+    record->template_arguments = template_argument_analysis(record_decl);
+    fmt::print(
+        "CXXRecordDecl analysis for: {}\n",
+        record->get_name()
+    );
+
     visited_nodes.emplace(record_decl, record.get());
     record->fields = field_analysis(record_decl);
     record->functions = method_analysis(record_decl, name);
-    record->template_arguments = template_argument_analysis(record_decl);
     if(auto parent = record_decl->getParent(); parent->getDeclKind() == clang::Decl::Kind::CXXRecord) {
         record->parent = register_type(static_cast<const CXXRecordDecl*>(parent));
     }
 
     const data::type_t* result = aggregator.emplace(std::unique_ptr<const data::record_t>(std::move(record)));
    
-    fmt::print(
-        "member analysis for {}\n",
-        result->get_name()
-    );
-
     return result;
 }
 
@@ -446,6 +389,8 @@ const data::type_t* ast_traversal_tool_t::register_type(const clang::Type* type)
             return register_type(type->getAs<ParenType>()->desugar());
         case clang::Type::TypeClass::FunctionProto:
             return aggregator.create<data::builtin_t>("void");
+        case clang::Type::TypeClass::Using:
+            return register_type(type->getAs<UsingType>()->desugar());
         default:
             fmt::print(std::cerr, "trouble identifying {}\n", type->getTypeClassName());
             return nullptr;
@@ -476,12 +421,12 @@ const data::type_t* ast_traversal_tool_t::register_type(const clang::QualType& q
         }
         return data::ref_qualifier_t::nothing;
     }(qtype);
-    auto* result = register_type(type);
+    const auto* result = register_type(type);
     if(ref_qualifier != data::ref_qualifier_t::nothing) {
-        return aggregator.create<data::reference_t>(std::move(result), cv_qualifier, ref_qualifier);
+        return aggregator.create<data::reference_t>(result, cv_qualifier, ref_qualifier);
     }
     if(cv_qualifier != data::cv_qualifier_t::nothing) {
-        return aggregator.create<data::cv_qualified_type_t>(std::move(result), cv_qualifier);
+        return aggregator.create<data::cv_qualified_type_t>(result, cv_qualifier);
     }
     return result;
 }
@@ -498,6 +443,19 @@ auto to_ref(clang::RefQualifierKind clang){
     return data::ref_qualifier_t::nothing;
 };
 
+auto find_variardic_expansion(std::vector<data::parameter_decl_t>& parameters) {
+    using iterator_t = std::vector<data::parameter_decl_t>::iterator;
+    using subrange_t = std::pair<iterator_t, iterator_t>;
+    std::vector<subrange_t> result;
+    for(iterator_t begin = parameters.begin(); begin != parameters.end(); ++begin) {
+        iterator_t end = std::find_if_not(begin+1, parameters.end(), [name = begin->name](const auto& end_value){ return name == end_value.name;});
+        if(std::distance(begin, end) > 0) {
+            result.emplace_back(begin, end);
+        }
+    }
+    return result;
+}
+
 std::vector<data::parameter_decl_t> ast_traversal_tool_t::parameter_analysis(const clang::CXXMethodDecl * method) {
     std::vector<data::parameter_decl_t> result;
     int i = 0;
@@ -509,6 +467,11 @@ std::vector<data::parameter_decl_t> ast_traversal_tool_t::parameter_analysis(con
         auto* type = register_type(decl->getType());
         auto is_pack = decl->isParameterPack();
         result.emplace_back(data::parameter_decl_t{std::move(name), type, is_pack});
+    }
+    for(auto [begin, end] : find_variardic_expansion(result)) {
+        for(auto it = begin; it != end; ++it) {
+            it->name = fmt::format("{}_{}", it->name, std::distance(begin, it));
+        }
     }
     return result;
 }

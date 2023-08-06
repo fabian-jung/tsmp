@@ -1,14 +1,12 @@
 #pragma once
 
-#include "tsmp/reflect.hpp"
-#include "tsmp/string_literal.hpp"
 #include <algorithm>
 #include <fmt/format.h>
+#include <ranges>
 #include <stdexcept>
 #include <functional>
 #include <iterator>
 #include <optional>
-#include <tsmp/introspect.hpp>
 
 #include <concepts>
 #include <range/v3/view/transform.hpp>
@@ -20,6 +18,7 @@
 #include <stdexcept>
 
 #include <nlohmann/json.hpp>
+#include <tsmp/introspect.hpp>
 
 namespace tsmp {
 
@@ -86,7 +85,12 @@ template <std::ranges::input_range Range>
 [[nodiscard]] std::string to_json(const Range& range) {
     using value_type = typename Range::value_type;
     using signature_t = std::string(*)(const value_type&);
-    const auto elements = ranges::transform_view(range, static_cast<signature_t>(to_json));
+    // sadly the ranges::transform_view solution can not be used, because transform_view uses a private nested type
+    // in its public interface, which breaks code generation.
+    // const auto elements = ranges::transform_view(range, static_cast<signature_t>(to_json));
+    // return fmt::format("[{}]", fmt::join(elements, ","));
+    std::vector<std::string> elements;
+    std::ranges::transform(range, std::back_inserter(elements), static_cast<signature_t>(to_json));
     return fmt::format("[{}]", fmt::join(elements, ","));
 }
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "reflect.hpp"
 #include "string_literal.hpp"
 #include <algorithm>
 #include <functional>
@@ -9,6 +8,8 @@
 #include <type_traits>
 #include <variant>
 #include <optional>
+#include "reflect.hpp"
+
 namespace tsmp {
 
 namespace detail {
