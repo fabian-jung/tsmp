@@ -44,7 +44,7 @@ std::string to_json(const auto& value) {
 }
 
 namespace json_example {
-        
+
     struct foo_t {
         int i { 42 };
         float f { 1337.0f };
@@ -52,9 +52,7 @@ namespace json_example {
         struct bar_t {
             int i { 0 };
         } bar;
-        // todo
-        // std::array<int, 4> numbers { 1, 2, 3, 4 };
-        std::vector<int> numbers { 1, 2, 3, 4 };
+        std::array<int, 4> numbers { 1, 2, 3, 4 };
     };
 
 }
