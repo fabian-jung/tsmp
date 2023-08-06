@@ -1,5 +1,4 @@
 add_library(introspect_lib STATIC 
-    data/aggregator.cpp
     data/types.cpp
     data/renderer.cpp
     engine/ast_traversal_tool.cpp

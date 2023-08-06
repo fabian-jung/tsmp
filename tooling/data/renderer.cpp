@@ -125,19 +125,6 @@ struct fmt::formatter<namespace_wrapper_t>
 
 namespace data {
 
-// std::string erase_substring(std::string input, const std::string& substring) {
-//     std::string::size_type pos = 0u;
-//     while((pos = input.find(substring, pos)) < input.size()) {
-//         input.erase(pos, substring.size());
-//     }
-//     return input;
-// }
-
-// std::string generate_unique_parameter_name() {
-//     static std::uint64_t id = 0;
-//     return fmt::format("p{}", ++id);
-// }
-
 std::string render_class_definition(const data::reflection_aggregator_t::entry_pointer_t<data::record_t>& record) {
     std::string template_declaration;
     if(!record->template_arguments.empty()) {
@@ -209,11 +196,6 @@ R"(struct global_t {{
 )";    
     return fmt::format(global_template, global);
 }
-
-// bool is_overloaded(const function_decl_t& function, const std::set<function_decl_t>& function_list) {
-//     const auto count = std::count_if(function_list.begin(), function_list.end(), [&function](const auto& elem){ return function.name == elem.name;});
-//     return count > 1;
-// }
 
 std::string render_field_description(const std::vector<field_decl_t>& fields) {
     std::string result;
