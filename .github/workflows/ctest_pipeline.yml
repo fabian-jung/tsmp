@@ -82,8 +82,8 @@ jobs:
         FetchContent_Declare(
             catch2
             GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-            GIT_TAG        v3.1.0
-        )
+            GIT_TAG        v3.3.2
+            )
         FetchContent_MakeAvailable(catch2 tsmp)
         list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
         include(CTest NO_POLICY_SCOPE)
@@ -102,8 +102,7 @@ jobs:
       run: |
         cat <<EOF > main.cpp
         #include <catch2/catch_all.hpp>
-        //#include <tsmp/json.hpp>
-        #include <tsmp/reflect.hpp>
+        #include <tsmp/json.hpp>
 
         struct foo_t {
             std::string hello = "world";
@@ -111,10 +110,7 @@ jobs:
 
         TEST_CASE("FetchContent integration test", "[unit]") {
             foo_t hello_world;
-            //REQUIRE(tsmp::to_json(hello_world) == R"({"hello":"world"})");
-            REQUIRE(std::get<0>(tsmp::reflect<foo_t>::fields()).name == "hello");
-            REQUIRE(hello_world.*(std::get<0>(tsmp::reflect<foo_t>::fields()).ptr) == "world");
-            
+            REQUIRE(tsmp::to_json(hello_world) == R"({"hello":"world"})");
         }
         EOF
 

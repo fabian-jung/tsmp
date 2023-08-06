@@ -66,6 +66,7 @@ struct template_argument_t {
     std::string name;
     std::variant<type_t*, std::string> value;
     bool is_pack = false;
+    std::vector<template_argument_t> template_template_arguments;
 
     std::string get_value(std::string prefix = "") const {
         if(auto* type = std::get_if<type_t*>(&value)) {
@@ -413,7 +414,11 @@ struct formatter<data::template_argument_t>
     template<typename FormatContext>
     auto format(data::template_argument_t const& arg, FormatContext& ctx) const
     {
-        return fmt::format_to(ctx.out(), "{}{} {}", arg.kind, arg.is_pack ? "..." : "" ,arg.name);
+        std::string template_decl;
+        if(!arg.template_template_arguments.empty()) {
+            template_decl = fmt::format("template <{}> ", fmt::join(arg.template_template_arguments, ", "));
+        }
+        return fmt::format_to(ctx.out(), "{}{}{} {}", template_decl, arg.kind, arg.is_pack ? "..." : "" ,arg.name);
     }
 };
 

@@ -99,9 +99,9 @@ struct fmt::formatter<namespace_wrapper_t>
             std::string record_definition;
             if(!record->template_arguments.empty()) {
                 fmt::format_to(std::back_inserter(record_definition), "    template <{0}>\n", fmt::join(record->template_arguments, ", "));
-                std::vector<std::string_view> names;
-                std::transform(record->template_arguments.begin(), record->template_arguments.end(), std::back_inserter(names), [](const auto& arg) -> std::string_view {
-                    return arg.name;
+                std::vector<std::string> names;
+                std::transform(record->template_arguments.begin(), record->template_arguments.end(), std::back_inserter(names), [](const auto& arg) -> std::string {
+                    return fmt::format("{}{}", arg.name, arg.is_pack ? "..." : "");
                 });
                 template_definition = fmt::format("<{}>", fmt::join(names, ", "));
             }
@@ -167,6 +167,10 @@ std::string render_forward_declaration(const reflection_aggregator_t::entry_cont
 std::string render_forward_declaration(const reflection_aggregator_t::entry_container_t<enum_t>& enums) {
     std::string result;
     for(const auto& e : enums) {
+        if(!e->scoped && !e->underlying_type.has_value()) {
+            // ISO C++ forbids forward references to 'enum' types without an underlying type
+            continue;
+        }
         const std::string declaration = fmt::format(
             "enum {}{}{};",
             e->scoped ? "class " : "",

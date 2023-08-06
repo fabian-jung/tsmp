@@ -73,6 +73,6 @@ int main(int, const char**) {
     std::invoke(std::get<0>(functions).ptr, foo_t{});
     std::invoke(std::get<1>(functions).ptr, foo_t{});
     std::invoke(std::get<2>(functions).ptr, foo_t{});
-    
+
     return 0;
 }

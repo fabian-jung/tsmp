@@ -2,7 +2,7 @@ set(TESTS
     reflect.cpp
     introspect.cpp
     proxy.cpp
-    # json.cpp
+    json.cpp
     string_literal.cpp
 )
 
