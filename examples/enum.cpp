@@ -1,12 +1,14 @@
 #include <tsmp/reflect.hpp>
 
-enum class eclass : std::uint32_t {
+enum class eclass : std::uint32_t
+{
     value1 = 1,
     value2 = 42,
     value3 = 1337
 };
 
-int main(int, char*[]) {
+int main(int, char*[])
+{
 
     constexpr auto values = tsmp::enum_values<eclass>;
     static_assert(values[0] == eclass::value1);

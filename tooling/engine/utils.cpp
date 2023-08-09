@@ -1,10 +1,9 @@
 #include "utils.h"
 #include <fstream>
 
-namespace utils
-{
+namespace utils {
 
-std::vector<std::string> getClangBuiltInIncludePath(const std::string &fullCallPath)
+std::vector<std::string> getClangBuiltInIncludePath(const std::string& fullCallPath)
 {
     auto currentPath = fullCallPath;
     currentPath.erase(currentPath.rfind("/"));
@@ -12,7 +11,7 @@ std::vector<std::string> getClangBuiltInIncludePath(const std::string &fullCallP
     std::string line;
     std::ifstream file(currentPath + "/builtInInclude.path");
     std::vector<std::string> result;
-    while(std::getline(file, line)) {
+    while (std::getline(file, line)) {
         result.emplace_back(line);
     }
 

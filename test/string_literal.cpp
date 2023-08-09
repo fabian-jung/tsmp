@@ -1,12 +1,13 @@
-#include <tsmp/string_literal.hpp>
 #include <catch2/catch_all.hpp>
+#include <tsmp/string_literal.hpp>
 
 #include <string_view>
 
-template <auto string_literal>
+template<auto string_literal>
 constexpr auto template_value = string_literal;
 
-TEST_CASE("string literal test", "[core][unit]") {
+TEST_CASE("string literal test", "[core][unit]")
+{
     static_assert(tsmp::string_literal_t("test") == "test");
     static_assert(tsmp::string_literal_t("test").size() == 4);
     static_assert(tsmp::string_literal_t("test")[0] == 't');
