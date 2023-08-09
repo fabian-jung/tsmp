@@ -2,12 +2,13 @@
 
 #include "aggregator.hpp"
 
-#include <string>
 #include <fstream>
+#include <string>
 
 namespace data {
 
-class renderer_t {
+class renderer_t
+{
 public:
     renderer_t(std::string header);
 

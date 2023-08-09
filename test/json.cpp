@@ -4,11 +4,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <deque>
 #include <forward_list>
+#include <optional>
 
-TEST_CASE("arithmetic json test", "[core][unit]") {
+TEST_CASE("arithmetic json test", "[core][unit]")
+{
     REQUIRE(tsmp::to_json(static_cast<std::int32_t>(42)) == "42");
     REQUIRE(tsmp::to_json(static_cast<std::uint32_t>(42)) == "42");
     REQUIRE(tsmp::to_json(static_cast<std::int8_t>(42)) == "42");
@@ -22,13 +23,15 @@ TEST_CASE("arithmetic json test", "[core][unit]") {
     REQUIRE(tsmp::try_from_json<std::uint32_t>("\"abc'\"") == std::nullopt);
 }
 
-enum class enum_t {
+enum class enum_t
+{
     value1,
     value2,
     value3
 };
 
-TEST_CASE("enum json test", "[core][unit]") {
+TEST_CASE("enum json test", "[core][unit]")
+{
     REQUIRE(tsmp::to_json(enum_t::value1) == "\"value1\"");
     REQUIRE(tsmp::to_json(enum_t::value2) == "\"value2\"");
     REQUIRE(tsmp::to_json(enum_t::value3) == "\"value3\"");
@@ -44,13 +47,15 @@ TEST_CASE("enum json test", "[core][unit]") {
     REQUIRE(tsmp::try_from_json<enum_t>("\"invalid\"") == std::nullopt);
 }
 
-TEST_CASE("string json test", "[core][unit]") {
+TEST_CASE("string json test", "[core][unit]")
+{
     REQUIRE(tsmp::to_json("test string") == "\"test string\"");
-    
+
     REQUIRE(tsmp::from_json<std::string>("\"test string\"") == "test string");
 }
 
-TEST_CASE("array json test", "[core][unit]") {
+TEST_CASE("array json test", "[core][unit]")
+{
     REQUIRE(tsmp::to_json(std::array<int, 4>{{1, 2, 3, 4}}) == "[1,2,3,4]");
 
     REQUIRE(tsmp::from_json<std::array<int, 4>>("[1,2,3,4]") == std::array<int, 4>{{1, 2, 3, 4}});
@@ -62,14 +67,16 @@ TEST_CASE("array json test", "[core][unit]") {
     REQUIRE(tsmp::from_json<std::array<int, 0>>("[]") == std::array<int, 0>{});
 }
 
-TEST_CASE("string_literal_t json test", "[core][unit]") {
+TEST_CASE("string_literal_t json test", "[core][unit]")
+{
     REQUIRE(tsmp::to_json(tsmp::string_literal_t("test string")) == "\"test string\"");
     REQUIRE(tsmp::from_json<tsmp::string_literal_t<5>>("\"12345\"") == tsmp::string_literal_t("12345"));
     REQUIRE(tsmp::from_json<tsmp::string_literal_t<128>>("\"12345\"") == tsmp::string_literal_t<128>("12345"));
     REQUIRE_THROWS(tsmp::from_json<tsmp::string_literal_t<3>>("\"12345\""));
 }
 
-TEST_CASE("immutable json test", "[core][unit]") {
+TEST_CASE("immutable json test", "[core][unit]")
+{
     REQUIRE(tsmp::to_json(tsmp::immutable_t<5>()) == "5");
     REQUIRE(tsmp::to_json(tsmp::immutable_t<tsmp::string_literal_t("test")>()) == "\"test\"");
 
@@ -80,14 +87,15 @@ TEST_CASE("immutable json test", "[core][unit]") {
     REQUIRE_THROWS(tsmp::from_json<tsmp::immutable_t<tsmp::string_literal_t("test")>>("\"tes\""));
 }
 
-TEST_CASE("range json test", "[core][unit]") {
-    REQUIRE(tsmp::to_json(std::vector{ 1, 2, 3}) == "[1,2,3]");
-    REQUIRE(tsmp::to_json(std::deque{ 1, 2, 3}) == "[1,2,3]");
-    REQUIRE(tsmp::to_json(std::forward_list{ 1, 2, 3}) == "[1,2,3]");
+TEST_CASE("range json test", "[core][unit]")
+{
+    REQUIRE(tsmp::to_json(std::vector{1, 2, 3}) == "[1,2,3]");
+    REQUIRE(tsmp::to_json(std::deque{1, 2, 3}) == "[1,2,3]");
+    REQUIRE(tsmp::to_json(std::forward_list{1, 2, 3}) == "[1,2,3]");
 
-    REQUIRE(tsmp::from_json<std::vector<int>>("[1,2,3]") == std::vector{1,2,3});
-    REQUIRE(tsmp::from_json<std::deque<int>>("[1,2,3]") == std::deque{1,2,3});
-    REQUIRE(tsmp::from_json<std::forward_list<int>>("[1,2,3]") == std::forward_list{1,2,3});
+    REQUIRE(tsmp::from_json<std::vector<int>>("[1,2,3]") == std::vector{1, 2, 3});
+    REQUIRE(tsmp::from_json<std::deque<int>>("[1,2,3]") == std::deque{1, 2, 3});
+    REQUIRE(tsmp::from_json<std::forward_list<int>>("[1,2,3]") == std::forward_list{1, 2, 3});
 
     REQUIRE_THROWS(tsmp::from_json<std::vector<int>>("[\"1\",\"2\",\"3\"]"));
     REQUIRE_THROWS(tsmp::from_json<std::vector<int>>("{\"1\",\"2\",\"3\"}"));
@@ -101,7 +109,8 @@ TEST_CASE("range json test", "[core][unit]") {
 //     auto operator<=>(const variant_test_specific_struct&) const noexcept = default;
 // };
 
-TEST_CASE("variant json test", "[core][unit]") {
+TEST_CASE("variant json test", "[core][unit]")
+{
     using variant = std::variant<int, float, std::string>;
     REQUIRE(tsmp::to_json(variant("test")) == "\"test\"");
     REQUIRE(tsmp::to_json(variant(5)) == "5");
@@ -127,15 +136,17 @@ TEST_CASE("variant json test", "[core][unit]") {
     // REQUIRE(std::get<tsmp::immutable_t<42>>(variant_immutable) == 42);
 }
 
-struct foo_t {
+struct foo_t
+{
     int i;
     std::string str;
     auto operator<=>(const foo_t&) const noexcept = default;
 };
 
-TEST_CASE("struct json test", "[core][unit]") {
-    const foo_t foo { 42, "test" };
-    
+TEST_CASE("struct json test", "[core][unit]")
+{
+    const foo_t foo{42, "test"};
+
     REQUIRE(tsmp::to_json(foo) == "{\"i\":42,\"str\":\"test\"}");
     REQUIRE(tsmp::from_json<foo_t>("{\"i\":42,\"str\":\"test\"}") == foo);
 
@@ -145,16 +156,18 @@ TEST_CASE("struct json test", "[core][unit]") {
     REQUIRE(tsmp::try_from_json<foo_t>("{\"i\":42}") == std::nullopt);
 }
 
-struct bar_t {
+struct bar_t
+{
     int i;
     std::optional<std::string> str;
     auto operator<=>(const bar_t&) const noexcept = default;
 };
 
-TEST_CASE("struct with optional json test", "[core][unit]") {
-    const bar_t foo { 42, "test" };
-    const bar_t foo2 { 42, std::nullopt };
-    
+TEST_CASE("struct with optional json test", "[core][unit]")
+{
+    const bar_t foo{42, "test"};
+    const bar_t foo2{42, std::nullopt};
+
     REQUIRE(tsmp::to_json(foo) == "{\"i\":42,\"str\":\"test\"}");
     REQUIRE(tsmp::from_json<bar_t>("{\"i\":42,\"str\":\"test\"}") == foo);
     REQUIRE(tsmp::from_json<bar_t>("{\"i\":42 }") == foo2);
@@ -163,9 +176,10 @@ TEST_CASE("struct with optional json test", "[core][unit]") {
     REQUIRE(tsmp::try_from_json<bar_t>("{\"i\":42 }") == foo2);
 }
 
-TEST_CASE("validator json test", "[core][unit]") {
-    constexpr const auto is_fourtytwo = [](auto number){ return number == 42; };
-    constexpr const auto not_fourtytwo = [](auto number){ return number != 42; };
+TEST_CASE("validator json test", "[core][unit]")
+{
+    constexpr const auto is_fourtytwo = [](auto number) { return number == 42; };
+    constexpr const auto not_fourtytwo = [](auto number) { return number != 42; };
 
     REQUIRE(tsmp::from_json<std::uint32_t>("42.0", is_fourtytwo) == 42);
     REQUIRE(tsmp::try_from_json<std::uint32_t>("42", not_fourtytwo) == std::nullopt);

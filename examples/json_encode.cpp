@@ -1,30 +1,34 @@
 #include "tsmp/json.hpp"
 #include <fmt/format.h>
 
-enum class state_t {
+enum class state_t
+{
     A,
     B,
     C
 };
 
-struct foo_t {
+struct foo_t
+{
     state_t state = state_t::A;
-    int i { 42 };
+    int i{42};
     // immutable_t<4> version;
-    tsmp::string_literal_t<4> sl { "asdf" };
+    tsmp::string_literal_t<4> sl{"asdf"};
     // tsmp::immutable_t<tsmp::string_literal_t{"some_string"}> immutable_string;
-    float f { 1337.0f };
+    float f{1337.0f};
     std::string s = "Hello World!";
-    struct bar_t {
-        int i { 0 };
+    struct bar_t
+    {
+        int i{0};
     } bar;
-    std::array<int, 4> numbers_array { 1, 2, 3, 4 };
-    std::vector<int> numbers_vector { 1, 2, 3, 4 };
+    std::array<int, 4> numbers_array{1, 2, 3, 4};
+    std::vector<int> numbers_vector{1, 2, 3, 4};
     std::optional<int> oint = std::nullopt;
-    std::variant<std::string, int> variant { 5 };
+    std::variant<std::string, int> variant{5};
 };
 
-int main(int, char*[]) {
+int main(int, char*[])
+{
     foo_t foo;
 
     fmt::print("{}\n", tsmp::to_json(foo));

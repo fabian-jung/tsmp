@@ -1,13 +1,15 @@
 #include <catch2/catch_all.hpp>
 
-#include <tsmp/reflect.hpp>
 #include <cmath>
+#include <tsmp/reflect.hpp>
 
-struct foo_t {
-    int i { 42 };
+struct foo_t
+{
+    int i{42};
 };
 
-TEST_CASE("basic reflection test", "[core][unit]") {
+TEST_CASE("basic reflection test", "[core][unit]")
+{
     foo_t foo;
     const auto fields = tsmp::reflect<foo_t>::fields();
     const auto first = std::get<0>(fields);
@@ -17,22 +19,24 @@ TEST_CASE("basic reflection test", "[core][unit]") {
     REQUIRE(std::string(first.name) == "i");
 }
 
-struct foo_empty_t {
-};
+struct foo_empty_t
+{};
 
-TEST_CASE("empty class reflection test", "[core][unit]") {
-    
+TEST_CASE("empty class reflection test", "[core][unit]")
+{
+
     const auto fields = tsmp::reflect<foo_empty_t>::fields();
     static_assert(std::tuple_size_v<decltype(fields)> == 0, "Empty types has no fields.");
 }
 
-
-struct bar_t {
-    int i { 42 };
-    float f { 3.1415 };
+struct bar_t
+{
+    int i{42};
+    float f{3.1415};
 };
 
-TEST_CASE("shared attributes reflection test", "[core][unit]") {
+TEST_CASE("shared attributes reflection test", "[core][unit]")
+{
     foo_t foo;
     bar_t bar;
 
@@ -58,14 +62,14 @@ TEST_CASE("shared attributes reflection test", "[core][unit]") {
     REQUIRE(std::string(bar_f.name) == "f");
 }
 
-struct member_function_t {
+struct member_function_t
+{
     void print() {}
-    int add(int a, int b) {
-        return a + b;
-    }
+    int add(int a, int b) { return a + b; }
 };
 
-TEST_CASE("member function reflection test", "[core][unit]") {
+TEST_CASE("member function reflection test", "[core][unit]")
+{
     member_function_t memfn;
     constexpr auto fields = tsmp::reflect<member_function_t>::fields();
     static_assert(std::tuple_size_v<decltype(fields)> == 0, "member_function_t should not have any fields");
@@ -81,18 +85,19 @@ TEST_CASE("member function reflection test", "[core][unit]") {
     REQUIRE((memfn.*(add.ptr))(2, 2) == 4);
 }
 
-enum class enum_t : std::uint32_t {
+enum class enum_t : std::uint32_t
+{
     a = 0,
     b = 1337,
     c = 42
 };
 
-TEST_CASE("enum test", "[core][unit]") {
-
+TEST_CASE("enum test", "[core][unit]")
+{
 
     constexpr auto values = tsmp::enum_values<enum_t>;
     constexpr auto names = tsmp::enum_names<enum_t>;
-    
+
     static_assert(values[0] == enum_t::a);
     static_assert(values[1] == enum_t::b);
     static_assert(values[2] == enum_t::c);
