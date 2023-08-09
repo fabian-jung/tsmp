@@ -62,3 +62,39 @@ jobs:
 
     - name: publish release
       run: gh release create v${{github.event.inputs.version}} -t v${{github.event.inputs.version}} --target ${{github.event.inputs.branch}} --notes "${{github.event.inputs.changelog}}"  --latest
+
+  package:
+    runs-on: ubuntu-22.04
+    needs: release
+    steps:
+    - name: install deps
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y software-properties-common 
+        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        sudo apt-get install -y clang-14 libclang-cpp14-dev libclang-14-dev ninja-build
+        sudo apt-get install -y curl zip unzip tar pkg-config python3.10-venv flex bison
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+      
+    - name: Restore artifacts, or setup vcpkg (do not install any package)
+      uses: lukka/run-vcpkg@v10
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/vendor/vcpkg'
+
+    - name: Run CMake consuming CMakePreset.json and vcpkg.json by mean of vcpkg.
+      uses: lukka/run-cmake@v10
+      with:
+        cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+        configurePreset: 'clang-fetch_content-release'
+        buildPreset: 'clang-fetch_content-release'
+
+    - name: Upload artifacts to the release
+      run: |
+        cd tsmp/build-fetch_content
+        cpack
+        gh release upload v${{github.event.inputs.version}} tsmp-${{github.event.inputs.version}}-Linux.tgz tsmp-${{github.event.inputs.version}}-Linux.deb --clobber
+    
