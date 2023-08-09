@@ -1,6 +1,6 @@
 # Maintainer: Fabian Jung <git@fabian-jung.info>
 pkgname=tsmp
-pkgver=1.0.7
+pkgver=1.1.0
 pkgrel=1
 pkgdesc='C++ Reflection Library'
 arch=('x86_64')

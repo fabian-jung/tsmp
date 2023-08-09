@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0
+
+- Changed the duck-type recognition system to a forward declare one
+    - This breaks reflection for anonymous types, but enables better proxy generation
+- Proxies for classes with virtual functions implemented
+- Code is now formatable with clang-format
+- Catch2 dependency updated
+- Custom CMake targets are declared as byproducts to be cleaned up from cmake
+
+
+
 ## 1.0.7
 
 - Refactor tooling backend
