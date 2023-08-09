@@ -1,7 +1,14 @@
 #!/bin/bash
+# This script is intended to be used by the CI to bump the version. There is no need
+# to run this script manually. It will bump the version in the CMakeLists.txt, vcpkg.json
+# and the arch pkgbuild. It will also create a new changelog entry and append it to the
+# Changelog.md file. The script will ask for the changelog entry. The script will not
+# commit or push the changes.
+# The first argument is the new version number in the format major.minor.patch.
 
 if [ "$#" -lt 1 ]; then
     echo "Illegal number of parameters"
+    echo "Usage: ./bump_version <version>"
     exit 1
 fi
 
@@ -36,6 +43,7 @@ head -n 2 doc/Changelog.md.bak >> doc/Changelog.md
 echo "Please enter the Changelog:"
 echo -e "## $1\n" >> doc/Changelog.md
 cat - >> doc/Changelog.md
+sed -z -i 's/\\n/\n/g' doc/Changelog.md
 echo -e "" >> doc/Changelog.md
 tail -n +2 doc/Changelog.md.bak >> doc/Changelog.md
 rm doc/Changelog.md.bak
