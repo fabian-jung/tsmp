@@ -47,6 +47,24 @@ jobs:
         buildPreset: '${{ matrix.compiler }}-${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
         testPreset: '${{ matrix.compiler }}-${{ matrix.dependency_loader }}-${{ matrix.build_type }}'
 
+  formatting:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: install deps
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y clang-format-15
+      
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: Run clang-format
+      run: |
+        ./scripts/format.sh --check
+
   fetch_content_integration:
     runs-on: ubuntu-22.04
 
