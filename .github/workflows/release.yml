@@ -59,7 +59,6 @@ jobs:
         git tag -a "v${{github.event.inputs.version}}" -m "${{github.event.inputs.changelog}}"
         git push
 
-
     - name: publish release
       run: gh release create v${{github.event.inputs.version}} -t v${{github.event.inputs.version}} --target ${{github.event.inputs.branch}} --notes "${{github.event.inputs.changelog}}"  --latest
 
@@ -94,7 +93,7 @@ jobs:
 
     - name: Upload artifacts to the release
       run: |
-        cd tsmp/build-fetch_content
+        cd build-fetch_content
         cpack
         gh release upload v${{github.event.inputs.version}} tsmp-${{github.event.inputs.version}}-Linux.tgz tsmp-${{github.event.inputs.version}}-Linux.deb --clobber
     
