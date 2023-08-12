@@ -19,8 +19,23 @@ done
 
 echo "What has changed since last release?"
 echo "Every change should be a new line starting with a dash. You can use (github) markdown. The indentation level of the section is two (##)."
-CHANGES=$(</dev/stdin)
+# Open Editor to write the changelog
+# The editor is set by the environment variable EDITOR
+# If it is not set, the default editor is nano
+${EDITOR:-nano} ${TEMP_DIR:-/tmp}/changes.md
+CHANGES=$(cat ${TEMP_DIR:-/tmp}/changes.md)
+
+# Check if the changelog is empty
+if [ -z "$CHANGES" ]; then
+    echo "Changelog may not be empty. Aborting release."
+    exit 1
+fi
+
+rm /tmp/changes.md
 CHANGES_ESCAPED=$(echo "$CHANGES" | sed -z 's/\n/\\n/g')
+
+echo "Changelog:"
+echo "$CHANGES"
 
 echo "Checking gh cli auth status"
 gh auth status
@@ -38,4 +53,4 @@ if [ "$CONFIRM" != "y" ]; then
     exit 1
 fi
 
-gh workflow run release.yml -f version="$VERSION" -f changes="$CHANGES_ESCAPED"
+gh workflow run release.yml -f version="$VERSION" -f changelog="$CHANGES"
